@@ -107,6 +107,8 @@ class StockPredictor:
         except Exception as e:
             raise ValueError(f"Error fetching data for {self.ticker}: {str(e)}")
 
+    scaler = MinMaxScaler()
+
     def _prepare_data_for_ml(self, validation_size: int = 30):
         """Prepare data for machine learning models"""
         if self.data is None:
