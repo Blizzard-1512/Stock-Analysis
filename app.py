@@ -477,7 +477,7 @@ def main():
                             'Required Capital': '${:,.2f}'
                         }).set_properties(**{
                             'background-color': 0e1117,
-                            'color': 'white'
+                            'color': 0e1117
                         }).highlight_min(
                             subset=['VaR'], color='lightgreen'
                         ),
