@@ -171,32 +171,33 @@ class StockPredictor:
         return self.metrics
         
     def train_rnn_model(self, validation_size: int = 30):
-    """Train RNN model for stock price prediction"""
-    data = self._prepare_data_for_ml(validation_size)
-
-    model = Sequential([
+        """Train RNN model for stock price prediction"""
+        data = self._prepare_data_for_ml(validation_size)
+        
+        model = Sequential([
         RNN(LSTMCell(50), input_shape=(data['X_train'].shape[1], 1), return_sequences=True),
         RNN(LSTMCell(50)),
         Dense(1)
-    ])
-    model.compile(optimizer='adam', loss='mse')
-
-    model.fit(data['X_train'], data['y_train'], 
+        ])
+        
+        model.compile(optimizer='adam', loss='mse')
+        
+        model.fit(data['X_train'], data['y_train'], 
               validation_data=(data['X_val'], data['y_val']), 
               epochs=50, batch_size=32, verbose=0)
-
-    self.model = model
-    
-    val_pred_scaled = model.predict(data['X_val'])
-    val_pred = self.scaler.inverse_transform(val_pred_scaled)
-
-    self.metrics = {
+        
+        self.model = model
+        
+        val_pred_scaled = model.predict(data['X_val'])
+        val_pred = self.scaler.inverse_transform(val_pred_scaled)
+        
+        self.metrics = {
         'MAPE': mean_absolute_percentage_error(data['prices'][-len(val_pred):], val_pred.flatten()),
         'RMSE': np.sqrt(mean_squared_error(data['prices'][-len(val_pred):], val_pred.flatten())),
         'Method': 'RNN'
-    }
-
-    return self.metrics
+        }
+        
+        return self.metrics
 
     def train_arima_model(self, validation_size: int = 30):
         """Train ARIMA model for stock price prediction"""
