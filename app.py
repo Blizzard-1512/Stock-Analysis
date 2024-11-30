@@ -492,7 +492,7 @@ def main():
                             #'background-color': 'lightyellow',
                             #'color': 'black'
                         }).highlight_min(
-                            subset=['VaR'], color='lightgreen'
+                            subset=['VaR'], color= 2b6929
                         ),
                         use_container_width=True
                     )
