@@ -437,10 +437,10 @@ def main():
                             'Date': lambda x: x,
                             'Predicted Price': '${:.2f}'
                         }).set_properties(**{
-                            'background-color': 'lightskyblue',
-                            'color': 'black'
+                            #'background-color': 'lightskyblue',
+                            #'color': 'black'
                         }).highlight_max(
-                            subset=['Predicted Price'], color='lightgreen'
+                            subset=['Predicted Price'], color='#2b6929'
                         ),
                         use_container_width=True
                     )
@@ -492,7 +492,7 @@ def main():
                             #'background-color': 'lightyellow',
                             #'color': 'black'
                         }).highlight_min(
-                            subset=['VaR'], color= 2b6929
+                            subset=['VaR'], color= '#2b6929'
                         ),
                         use_container_width=True
                     )
