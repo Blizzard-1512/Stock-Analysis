@@ -424,8 +424,8 @@ def main():
                             'Date': lambda x: x,
                             'Predicted Price': '${:.2f}'
                         }).set_properties(**{
-                            'background-color': 'lightskyblue',
-                            'color': 'black'
+                            'background-color': 0e1117,
+                            'color': 'white'
                         }).highlight_max(
                             subset=['Predicted Price'], color='lightgreen'
                         ),
@@ -477,7 +477,7 @@ def main():
                             'Required Capital': '${:,.2f}'
                         }).set_properties(**{
                             'background-color': 0e1117,
-                            'color': 'black'
+                            'color': 'white'
                         }).highlight_min(
                             subset=['VaR'], color='lightgreen'
                         ),
