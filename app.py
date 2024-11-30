@@ -91,8 +91,8 @@ class StockPredictor:
             raise ValueError(f"Error fetching data for {self.ticker}: {str(e)}")
 
     def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
-    if self.data is None:
-        raise ValueError("No data available. Call fetch_data() first.")
+        if self.data is None:
+            raise ValueError("No data available. Call fetch_data() first.")
 
     returns = self.data['Returns'].dropna()
     current_price = self.data['Close'].iloc[-1]
@@ -130,7 +130,6 @@ class StockPredictor:
         'Benchmark_VaR': float(benchmark_var),
         'Required_Capital': required_capital
     }
-
     return self.var_metrics
 
     def train_model(self, validation_size: int = 30) -> dict:
