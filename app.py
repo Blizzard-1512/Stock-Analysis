@@ -1,4 +1,3 @@
-import self
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -65,6 +64,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 class StockPredictor:
     def __init__(self, ticker: str, years: int = 10):
         self.ticker = ticker.upper()
@@ -117,11 +117,12 @@ class StockPredictor:
         # Use Close prices for prediction
         prices = self.data['Close'].values
         scaled_prices = self.scaler.fit_transform(prices.reshape(-1, 1))
+
         def create_sequences(data, seq_length=20):
             X, y = [], []
             for i in range(len(data) - seq_length):
-                X.append(data[i:i+seq_length])
-                y.append(data[i+seq_length])
+                X.append(data[i:i + seq_length])
+                y.append(data[i + seq_length])
             return np.array(X), np.array(y)
 
         X_scaled, y_scaled = create_sequences(scaled_prices)
@@ -131,9 +132,9 @@ class StockPredictor:
         y_train, y_val = y_scaled[:split], y_scaled[split:]
 
         return {
-            'X_train': X_train, 
-            'X_val': X_val, 
-            'y_train': y_train, 
+            'X_train': X_train,
+            'X_val': X_val,
+            'y_train': y_train,
             'y_val': y_val,
             'prices': prices,
             'scaled_prices': scaled_prices
@@ -152,16 +153,16 @@ class StockPredictor:
         model.compile(optimizer='adam', loss='mse')
 
         # Train model
-        model.fit(data['X_train'], data['y_train'], 
-                  validation_data=(data['X_val'], data['y_val']), 
+        model.fit(data['X_train'], data['y_train'],
+                  validation_data=(data['X_val'], data['y_val']),
                   epochs=50, batch_size=32, verbose=0)
 
         self.model = model
-        
+
         # Make predictions and calculate metrics
         val_pred_scaled = model.predict(data['X_val'])
         val_pred = self.scaler.inverse_transform(val_pred_scaled)
-        
+
         self.metrics = {
             'MAPE': mean_absolute_percentage_error(data['prices'][-len(val_pred):], val_pred.flatten()),
             'RMSE': np.sqrt(mean_squared_error(data['prices'][-len(val_pred):], val_pred.flatten())),
@@ -169,34 +170,34 @@ class StockPredictor:
         }
 
         return self.metrics
-        
+
     def train_rnn_model(self, validation_size: int = 30):
         """Train RNN model for stock price prediction"""
         data = self._prepare_data_for_ml(validation_size)
-        
+
         model = Sequential([
-        RNN(LSTMCell(50), input_shape=(data['X_train'].shape[1], 1), return_sequences=True),
-        RNN(LSTMCell(50)),
-        Dense(1)
+            RNN(LSTMCell(50), input_shape=(data['X_train'].shape[1], 1), return_sequences=True),
+            RNN(LSTMCell(50)),
+            Dense(1)
         ])
-        
+
         model.compile(optimizer='adam', loss='mse')
-        
-        model.fit(data['X_train'], data['y_train'], 
-              validation_data=(data['X_val'], data['y_val']), 
-              epochs=50, batch_size=32, verbose=0)
-        
+
+        model.fit(data['X_train'], data['y_train'],
+                  validation_data=(data['X_val'], data['y_val']),
+                  epochs=50, batch_size=32, verbose=0)
+
         self.model = model
-        
+
         val_pred_scaled = model.predict(data['X_val'])
         val_pred = self.scaler.inverse_transform(val_pred_scaled)
-        
+
         self.metrics = {
-        'MAPE': mean_absolute_percentage_error(data['prices'][-len(val_pred):], val_pred.flatten()),
-        'RMSE': np.sqrt(mean_squared_error(data['prices'][-len(val_pred):], val_pred.flatten())),
-        'Method': 'RNN'
+            'MAPE': mean_absolute_percentage_error(data['prices'][-len(val_pred):], val_pred.flatten()),
+            'RMSE': np.sqrt(mean_squared_error(data['prices'][-len(val_pred):], val_pred.flatten())),
+            'Method': 'RNN'
         }
-        
+
         return self.metrics
 
     def train_arima_model(self, validation_size: int = 30):
@@ -209,7 +210,7 @@ class StockPredictor:
         val_data = prices[-validation_size:]
 
         # Fit ARIMA model (p,d,q) - you might want to use grid search or AIC for optimal parameters
-        model = ARIMA(train_data, order=(5,1,2))
+        model = ARIMA(train_data, order=(5, 1, 2))
         model_fit = model.fit()
 
         # Make predictions
@@ -305,36 +306,40 @@ class StockPredictor:
         }
 
         return self.var_metrics
-        
-        
+
     def predict_future(self, days: int = 5, method='Trend-adjusted exponential smoothing'):
         """Predict future prices based on selected method"""
         last_date = self.data.index[-1]
         future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
-        
+
         predictions = None
-        
+
         if method == 'TAES' or method == 'Trend-adjusted exponential smoothing':
-        # Use existing method
-        predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend) for i in range(days)]) 
-        elif method == 'LSTM': 
-        if self.model is None:
-            raise ValueError("LSTM model not trained. Call train_model with LSTM method first.")
-        
+
+            predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend) for i in range(days)])
+
+        elif method == 'LSTM':
+
+            if self.model is None:
+                raise ValueError("LSTM model not trained. Call train_model with LSTM method first.")
+
         last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
         predictions_scaled = []
         current_sequence = last_sequence
+
         for _ in range(days):
             next_pred_scaled = self.model.predict(current_sequence)
             predictions_scaled.append(next_pred_scaled[0, 0])
             current_sequence = np.roll(current_sequence, -1, axis=1)
             current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()                
+
+        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+
         elif method == 'RNN':
         # Similar to LSTM prediction
         if self.model is None:
             raise ValueError("RNN model not trained. Call train_model with RNN method first.")
-        
+
         last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
         predictions_scaled = []
         current_sequence = last_sequence
@@ -348,15 +353,16 @@ class StockPredictor:
         # Use ARIMA model's forecast
         if self.model_fit is None:
             raise ValueError("ARIMA model not trained. Call train_model with ARIMA method first.")
-        
+
         predictions = self.model_fit.forecast(steps=days)
 
     # Check if predictions were generated
-    if predictions is None:
-        raise ValueError(f"No predictions generated for method: {method}")
+        if predictions is None:
+            raise ValueError(f"No predictions generated for method: {method}")
 
-    self.predictions = pd.Series(predictions, index=future_dates)
-    return self.predictions
+        self.predictions = pd.Series(predictions, index=future_dates)
+
+        return self.predictions
 
     def create_plots(self):
         if self.data is None:
@@ -482,6 +488,7 @@ class StockPredictor:
 
         return figs
 
+
 def get_stock_metrics(ticker):
     """
     Fetch key stock metrics from Yahoo Finance
@@ -505,11 +512,11 @@ def get_stock_metrics(ticker):
         # Format market cap
         if isinstance(metrics['Market Cap'], (int, float)):
             if metrics['Market Cap'] >= 1e12:
-                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e12:.2f}T'
+                metrics['Market Cap'] = f'${metrics["Market Cap"] / 1e12:.2f}T'
             elif metrics['Market Cap'] >= 1e9:
-                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e9:.2f}B'
+                metrics['Market Cap'] = f'${metrics["Market Cap"] / 1e9:.2f}B'
             else:
-                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e6:.2f}M'
+                metrics['Market Cap'] = f'${metrics["Market Cap"] / 1e6:.2f}M'
 
         return metrics
     except Exception as e:
@@ -582,20 +589,20 @@ def main():
             # Prediction section
             st.markdown("### Price Predictions")
             prediction_models = [
-                'TAES', 
-                'LSTM', 
-                'RNN', 
+                'TAES',
+                'LSTM',
+                'RNN',
                 'ARIMA'
             ]
             selected_model = st.selectbox("Select Prediction Model", prediction_models)
             days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
-            
+
             if st.button("Predict Stock Prices"):
                 with st.spinner(f"Training {selected_model} model and generating predictions..."):
                     try:
                         # Train the selected model
                         predictor.train_model(method=selected_model)
-                        
+
                         # Generate future price predictions using the selected model
                         predictions = predictor.predict_future(days=days, method=selected_model)
 
@@ -614,8 +621,8 @@ def main():
                                 'Date': lambda x: x,
                                 'Predicted Price': '${:.2f}'
                             }).set_properties(**{
-                                #'background-color': 'lightskyblue',
-                                #'color': 'black'
+                                # 'background-color': 'lightskyblue',
+                                # 'color': 'black'
                             }).highlight_max(
                                 subset=['Predicted Price'], color='#2b6929'
                             ),
@@ -631,7 +638,7 @@ def main():
             st.markdown("### Risk Analysis")
             # Input number of shares for risk calculation
             n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
-            
+
             if st.button("Calculate Risk Metrics"):
                 with st.spinner("Calculating Value at Risk..."):
                     try:
@@ -670,10 +677,10 @@ def main():
                                 'VaR': '${:,.2f}',
                                 'Required Capital': '${:,.2f}'
                             }).set_properties(**{
-                                #'background-color': 'lightyellow',
-                                #'color': 'black'
+                                # 'background-color': 'lightyellow',
+                                # 'color': 'black'
                             }).highlight_min(
-                                subset=['VaR'], color= '#2b6929'
+                                subset=['VaR'], color='#2b6929'
                             ),
                             use_container_width=True
                         )
