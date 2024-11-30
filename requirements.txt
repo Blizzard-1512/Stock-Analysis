@@ -7,3 +7,4 @@ streamlit==1.40.1
 yfinance==0.2.50
 self
 statsmodels
+tensorflow
