@@ -186,16 +186,16 @@ class StockPredictor:
               epochs=50, batch_size=32, verbose=0)
         self.model = model
         # Make predictions and calculate metrics
-    val_pred_scaled = model.predict(data['X_val'])
-    val_pred = self.scaler.inverse_transform(val_pred_scaled)
-    
-    self.metrics = {
+        val_pred_scaled = model.predict(data['X_val'])
+        val_pred = self.scaler.inverse_transform(val_pred_scaled)
+
+        self.metrics = {
         'MAPE': mean_absolute_percentage_error(data['prices'][-len(val_pred):], val_pred.flatten()),
         'RMSE': np.sqrt(mean_squared_error(data['prices'][-len(val_pred):], val_pred.flatten())),
         'Method': 'RNN'
-    }
+         }
 
-    return self.metrics
+         return self.metrics
 
     def train_arima_model(self, validation_size: int = 30):
         """Train ARIMA model for stock price prediction"""
