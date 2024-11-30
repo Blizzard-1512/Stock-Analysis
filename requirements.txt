@@ -1,4 +1,4 @@
-numpy==2.1.3
+numpy
 pandas==2.2.3
 plotly==5.24.1
 scikit_learn==1.5.2
@@ -8,5 +8,4 @@ yfinance==0.2.50
 self
 statsmodels
 tensorflow
-keras
-Sequential
+
