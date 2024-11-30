@@ -580,100 +580,109 @@ def main():
             # Prediction section
             st.markdown("### Price Predictions")
             prediction_models = [
-        'TAES', 
-        'LSTM', 
-        'RNN', 
-        'ARIMA'
-    ]
-    selected_model = st.selectbox("Select Prediction Model", prediction_models)
+                'TAES', 
+                'LSTM', 
+                'RNN', 
+                'ARIMA'
+            ]
+            selected_model = st.selectbox("Select Prediction Model", prediction_models)
             days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
-    if st.button("Predict Stock Prices"):
-        with st.spinner(f"Training {selected_model} model and generating predictions..."):
-            try:
-                # Train the selected model
-                predictor.train_model(method=selected_model)
-                
-                # Generate future price predictions using the selected model
-                predictions = predictor.predict_future(days=days, method=selected_model)
+            
+            if st.button("Predict Stock Prices"):
+                with st.spinner(f"Training {selected_model} model and generating predictions..."):
+                    try:
+                        # Train the selected model
+                        predictor.train_model(method=selected_model)
+                        
+                        # Generate future price predictions using the selected model
+                        predictions = predictor.predict_future(days=days, method=selected_model)
 
-                st.markdown(f"#### Predicted Prices for Next {days} Business Days using {selected_model}")
-                pred_df = pd.DataFrame({
-                    'Date': predictions.index.strftime('%Y-%m-%d'),
-                    'Predicted Price': predictions.values
-                })
+                        st.markdown(f"#### Predicted Prices for Next {days} Business Days using {selected_model}")
+                        pred_df = pd.DataFrame({
+                            'Date': predictions.index.strftime('%Y-%m-%d'),
+                            'Predicted Price': predictions.values
+                        })
 
-                # Display predictions in a styled table
-                st.markdown("""
-                    <div class="prediction-table">
-                    """, unsafe_allow_html=True)
-                st.dataframe(
-                    pred_df.style.format({
-                        'Date': lambda x: x,
-                        'Predicted Price': '${:.2f}'
-                    }).set_properties(**{
-                        #'background-color': 'lightskyblue',
-                        #'color': 'black'
-                    }).highlight_max(
-                        subset=['Predicted Price'], color='#2b6929'
-                    ),
-                    use_container_width=True
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
+                        # Display predictions in a styled table
+                        st.markdown("""
+                            <div class="prediction-table">
+                            """, unsafe_allow_html=True)
+                        st.dataframe(
+                            pred_df.style.format({
+                                'Date': lambda x: x,
+                                'Predicted Price': '${:.2f}'
+                            }).set_properties(**{
+                                #'background-color': 'lightskyblue',
+                                #'color': 'black'
+                            }).highlight_max(
+                                subset=['Predicted Price'], color='#2b6929'
+                            ),
+                            use_container_width=True
+                        )
+                        st.markdown("</div>", unsafe_allow_html=True)
+
+                    except Exception as e:
+                        # Handle and display any errors that occur during prediction
+                        st.error(f"Prediction Error: {str(e)}")
 
             # Risk Analysis section
             st.markdown("### Risk Analysis")
             # Input number of shares for risk calculation
             n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
+            
             if st.button("Calculate Risk Metrics"):
-
-
                 with st.spinner("Calculating Value at Risk..."):
-                    # Calculate VaR metrics
-                    var_metrics = predictor.calculate_var(n_shares=n_shares)
+                    try:
+                        # Calculate VaR metrics
+                        var_metrics = predictor.calculate_var(n_shares=n_shares)
 
-                    # Prepare VaR data for display
-                    var_data = []
-                    methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
+                        # Prepare VaR data for display
+                        var_data = []
+                        methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
 
-                    for method in methods:
-                        # Safely handle VaR value retrieval
-                        var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
+                        for method in methods:
+                            # Safely handle VaR value retrieval
+                            var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
 
-                        # Safely handle required capital
-                        if method != 'Benchmark':
-                            required_capital = var_metrics['Required_Capital'].get(method, 0)
-                        else:
-                            required_capital = 0
+                            # Safely handle required capital
+                            if method != 'Benchmark':
+                                required_capital = var_metrics['Required_Capital'].get(method, 0)
+                            else:
+                                required_capital = 0
 
-                        var_data.append({
-                            'Method': method,
-                            'VaR': var_value,
-                            'Required Capital': required_capital
-                        })
+                            var_data.append({
+                                'Method': method,
+                                'VaR': var_value,
+                                'Required Capital': required_capital
+                            })
 
-                    var_df = pd.DataFrame(var_data)
+                        var_df = pd.DataFrame(var_data)
 
-                    # Display VaR metrics in a styled table
-                    st.markdown("#### Value at Risk (VaR) Analysis")
-                    st.markdown("""
-                            <div class="prediction-table">
-                            """, unsafe_allow_html=True)
-                    st.dataframe(
-                        var_df.style.format({
-                            'VaR': '${:,.2f}',
-                            'Required Capital': '${:,.2f}'
-                        }).set_properties(**{
-                            #'background-color': 'lightyellow',
-                            #'color': 'black'
-                        }).highlight_min(
-                            subset=['VaR'], color= '#2b6929'
-                        ),
-                        use_container_width=True
-                    )
-                    st.markdown("</div>", unsafe_allow_html=True)
+                        # Display VaR metrics in a styled table
+                        st.markdown("#### Value at Risk (VaR) Analysis")
+                        st.markdown("""
+                                <div class="prediction-table">
+                                """, unsafe_allow_html=True)
+                        st.dataframe(
+                            var_df.style.format({
+                                'VaR': '${:,.2f}',
+                                'Required Capital': '${:,.2f}'
+                            }).set_properties(**{
+                                #'background-color': 'lightyellow',
+                                #'color': 'black'
+                            }).highlight_min(
+                                subset=['VaR'], color= '#2b6929'
+                            ),
+                            use_container_width=True
+                        )
+                        st.markdown("</div>", unsafe_allow_html=True)
+
+                    except Exception as e:
+                        # Handle and display any errors that occur during risk calculation
+                        st.error(f"Risk Calculation Error: {str(e)}")
 
         except Exception as e:
-            # Handle and display any errors that occur during processing
+            # Handle and display any errors that occur during initial processing
             st.error(f"Error: {str(e)}")
 
 
