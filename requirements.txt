@@ -9,4 +9,4 @@ self
 statsmodels
 tensorflow
 keras
-sequential
+Sequential
