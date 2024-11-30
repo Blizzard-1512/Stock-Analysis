@@ -41,9 +41,22 @@ st.markdown("""
         color: #1e88e5;
     }
     .prediction-table {
-        background-color: #f9f9f9;
+        background-color: #0e1117;
         border-radius: 10px;
-        margin: 20px 0
+        margin: 20px 0;
+        color: white; /* Default white text for visibility */
+    }
+    .prediction-table .stDataFrame {
+        background-color: #0e1117 !important;
+        color: white !important;
+    }
+    .prediction-table .stDataFrame thead {
+        background-color: #0e1117 !important;
+        color: white !important;
+    }
+    .prediction-table .stDataFrame th {
+        background-color: #0e1117 !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
