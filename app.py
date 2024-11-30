@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from statsmodels.tsa.arima.model import ARIMA
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, RNN, Dense
+from tensorflow.keras.layers import LSTM, RNN, Dense, LSTMCell
 from sklearn.preprocessing import MinMaxScaler
 
 # Set page config
