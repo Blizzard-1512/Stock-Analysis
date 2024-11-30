@@ -24,7 +24,7 @@ st.markdown("""
         margin: 0 auto;
     }
     .metric-card {
-        background-color: #bab3b3;
+        background-color: #d1c9c9;
         border-radius: 10px;
         padding: 15px;
         margin: 10px 0;
@@ -41,9 +41,7 @@ st.markdown("""
         color: #1e88e5;
     }
     .prediction-table {
-        background-color: #f9f9f9;
         border-radius: 10px;
-        padding: 15px;
         margin: 20px 0;
     }
     </style>
