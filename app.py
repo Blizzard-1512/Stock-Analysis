@@ -170,7 +170,7 @@ class StockPredictor:
 
         return self.metrics
         
-        def train_rnn_model(self, validation_size: int = 30):
+    def train_rnn_model(self, validation_size: int = 30):
             """Train RNN model for stock price prediction"""
             data = self._prepare_data_for_ml(validation_size)
             # Build RNN Model using RNN with LSTMCell
