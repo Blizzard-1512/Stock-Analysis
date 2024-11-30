@@ -41,6 +41,7 @@ st.markdown("""
         color: #1e88e5;
     }
     .prediction-table {
+        background-color: #0e1117;
         border-radius: 10px;
         margin: 20px 0;
     }
