@@ -41,9 +41,10 @@ st.markdown("""
         color: #1e88e5;
     }
     .prediction-table {
-    background-color: #0e1117;
+        background-color: #f9f9f9;
         border-radius: 10px;
-        margin: 20px 0;
+        padding: 15px;
+        margin: 20px 0
     }
     </style>
 """, unsafe_allow_html=True)
