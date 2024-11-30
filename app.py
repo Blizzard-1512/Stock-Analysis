@@ -43,7 +43,6 @@ st.markdown("""
     .prediction-table {
         background-color: #f9f9f9;
         border-radius: 10px;
-        padding: 15px;
         margin: 20px 0
     }
     </style>
