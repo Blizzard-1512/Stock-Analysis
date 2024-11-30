@@ -91,47 +91,47 @@ class StockPredictor:
             raise ValueError(f"Error fetching data for {self.ticker}: {str(e)}")
 
     def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
-        if self.data is None:
-            raise ValueError("No data available. Call fetch_data() first.")
+    if self.data is None:
+        raise ValueError("No data available. Call fetch_data() first.")
 
-        returns = self.data['Returns'].dropna()
-        current_price = self.data['Close'].iloc[-1]
-        position_value = current_price * n_shares
+    returns = self.data['Returns'].dropna()
+    current_price = self.data['Close'].iloc[-1]
+    position_value = current_price * n_shares  # Use the passed n_shares here
 
-        mean_return = returns.mean()
-        std_return = returns.std()
-        z_score = stats.norm.ppf(1 - confidence_level)
+    mean_return = returns.mean()
+    std_return = returns.std()
+    z_score = stats.norm.ppf(1 - confidence_level)
 
-        # Calculate VaR values
-        parametric_var = position_value * (
-                z_score * std_return * np.sqrt(holding_period) - mean_return * holding_period)
-        historical_var = position_value * returns.quantile(1 - confidence_level) * np.sqrt(holding_period)
+    # Calculate VaR values - now using n_shares consistently
+    parametric_var = position_value * (
+            z_score * std_return * np.sqrt(holding_period) - mean_return * holding_period)
+    historical_var = position_value * returns.quantile(1 - confidence_level) * np.sqrt(holding_period)
 
-        # Monte Carlo VaR
-        n_simulations = 10000
-        np.random.seed(42)
-        mc_returns = np.random.normal(mean_return, std_return, n_simulations)
-        mc_var = position_value * np.percentile(mc_returns, (1 - confidence_level) * 100) * np.sqrt(holding_period)
+    # Monte Carlo VaR
+    n_simulations = 10000
+    np.random.seed(42)
+    mc_returns = np.random.normal(mean_return, std_return, n_simulations)
+    mc_var = position_value * np.percentile(mc_returns, (1 - confidence_level) * 100) * np.sqrt(holding_period)
 
-        # Calculate required capital (3x VaR)
-        capital_multiplier = 3
-        required_capital = {
-            'Parametric': abs(float(parametric_var)) * capital_multiplier,
-            'Historical': abs(float(historical_var)) * capital_multiplier,
-            'Monte Carlo': abs(float(mc_var)) * capital_multiplier
-        }
+    # Calculate required capital (3x VaR)
+    capital_multiplier = 3
+    required_capital = {
+        'Parametric': abs(float(parametric_var)) * capital_multiplier,
+        'Historical': abs(float(historical_var)) * capital_multiplier,
+        'Monte Carlo': abs(float(mc_var)) * capital_multiplier
+    }
 
-        benchmark_var = position_value * 0.015  # 1.5% of position value
+    benchmark_var = position_value * 0.015  # 1.5% of position value
 
-        self.var_metrics = {
-            'Parametric_VaR': float(parametric_var),
-            'Historical_VaR': float(historical_var),
-            'Monte_Carlo_VaR': float(mc_var),
-            'Benchmark_VaR': float(benchmark_var),
-            'Required_Capital': required_capital
-        }
+    self.var_metrics = {
+        'Parametric_VaR': float(parametric_var),
+        'Historical_VaR': float(historical_var),
+        'Monte_Carlo_VaR': float(mc_var),
+        'Benchmark_VaR': float(benchmark_var),
+        'Required_Capital': required_capital
+    }
 
-        return self.var_metrics
+    return self.var_metrics
 
     def train_model(self, validation_size: int = 30) -> dict:
         try:
