@@ -91,7 +91,7 @@ class StockPredictor:
             raise ValueError(f"Error fetching data for {self.ticker}: {str(e)}")
 
     def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
-    if self.data is None:
+        if self.data is None:
         raise ValueError("No data available. Call fetch_data() first.")
 
     returns = self.data['Returns'].dropna()
