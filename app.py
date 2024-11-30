@@ -380,20 +380,17 @@ class StockPredictor:
                                     self.predictions = pd.Series(predictions, index=future_dates)
                                     
                                     return self.predictions
-
-    except Exception as e:
-        # Log the error for debugging
-        print(f"Prediction error in {method} method: {str(e)}")
-        
-        # Fallback to a simple trend-based prediction
-        last_price = self.data['Close'].iloc[-1]
-        last_prices = self.data['Close'].tail(20)
-        avg_change = last_prices.diff().mean()
-        trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-        
-        predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-        
-        return pd.Series(predictions, index=future_dates)
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Prediction error in {method} method: {str(e)}")
+            last_price = self.data['Close'].iloc[-1]
+            last_prices = self.data['Close'].tail(20)
+            avg_change = last_prices.diff().mean()
+            trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
+            
+            predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
+            
+            return pd.Series(predictions, index=future_dates)
 
     def create_plots(self):
         if self.data is None:
