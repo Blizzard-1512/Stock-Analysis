@@ -311,50 +311,62 @@ class StockPredictor:
         """Predict future prices based on selected method"""
         last_date = self.data.index[-1]
         future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1),
-                                     periods=days,
-                                     freq='B')
-
-        if method == 'Trend-adjusted exponential smoothing':
-            # Use existing method
-            predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend)
-                                    for i in range(days)])
-        elif method == 'LSTM':
-            # Predict using last sequence from scaled data
-            last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-            predictions_scaled = []
-            current_sequence = last_sequence
-
-            for _ in range(days):
-                next_pred_scaled = self.model.predict(current_sequence)
-                predictions_scaled.append(next_pred_scaled[0, 0])
-                current_sequence = np.roll(current_sequence, -1, axis=1)
-                current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-
-            predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                                 periods=days,
+                                 freq='B')
+        # Initialize predictions variable
+    predictions = None
+    
+    if method == 'TAES' or method == 'Trend-adjusted exponential smoothing':
+        # Use existing method
+        predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend)
+                                for i in range(days)])
+    elif method == 'LSTM':
+        # Predict using last sequence from scaled data
+        if self.model is None:
+            raise ValueError("LSTM model not trained. Call train_model with LSTM method first.")
         
-        elif method == 'RNN':
-            # Similar to LSTM prediction
-            last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-            predictions_scaled = []
-            current_sequence = last_sequence
+        last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+        predictions_scaled = []
+        current_sequence = last_sequence
 
-            for _ in range(days):
-                next_pred_scaled = self.model.predict(current_sequence)
-                predictions_scaled.append(next_pred_scaled[0, 0])
-                current_sequence = np.roll(current_sequence, -1, axis=1)
-                current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+        for _ in range(days):
+            next_pred_scaled = self.model.predict(current_sequence)
+            predictions_scaled.append(next_pred_scaled[0, 0])
+            current_sequence = np.roll(current_sequence, -1, axis=1)
+            current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
 
-            predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+    
+    elif method == 'RNN':
+        # Similar to LSTM prediction
+        if self.model is None:
+            raise ValueError("RNN model not trained. Call train_model with RNN method first.")
         
-        elif method == 'ARIMA':
-            # Use ARIMA model's forecast
-            if self.model_fit:
-                predictions = self.model_fit.forecast(steps=days)
-            else:
-                raise ValueError("ARIMA model not trained. Call train_model with ARIMA method first.")
+        last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+        predictions_scaled = []
+        current_sequence = last_sequence
 
-        self.predictions = pd.Series(predictions, index=future_dates)
-        return self.predictions
+        for _ in range(days):
+            next_pred_scaled = self.model.predict(current_sequence)
+            predictions_scaled.append(next_pred_scaled[0, 0])
+            current_sequence = np.roll(current_sequence, -1, axis=1)
+            current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+
+        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+    
+    elif method == 'ARIMA':
+        # Use ARIMA model's forecast
+        if self.model_fit is None:
+            raise ValueError("ARIMA model not trained. Call train_model with ARIMA method first.")
+        
+        predictions = self.model_fit.forecast(steps=days)
+
+    # Check if predictions were generated
+    if predictions is None:
+        raise ValueError(f"No predictions generated for method: {method}")
+
+    self.predictions = pd.Series(predictions, index=future_dates)
+    return self.predictions
 
     def create_plots(self):
         if self.data is None:
