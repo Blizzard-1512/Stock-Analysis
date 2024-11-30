@@ -425,7 +425,6 @@ def main():
                             'Predicted Price': '${:.2f}'
                         }).set_properties(**{
                             'background-color': 0e1117,
-                            'color': 'white'
                         }).highlight_max(
                             subset=['Predicted Price'], color='lightgreen'
                         ),
