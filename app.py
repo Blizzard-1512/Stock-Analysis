@@ -415,12 +415,13 @@ def main():
 
             # Prediction section
             st.markdown("### Price Predictions")
+            days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
             if st.button("Predict Stock Prices"):
                 with st.spinner("Training model and generating predictions..."):
                     # Train the prediction model
                     predictor.train_model()
                     # Generate future price predictions
-                    predictions = predictor.predict_future()
+                    predictions = predictor.predict_future(days=days)
 
                     st.markdown("#### Predicted Prices for Next 5 Business Days")
                     pred_df = pd.DataFrame({
