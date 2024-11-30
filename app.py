@@ -96,13 +96,13 @@ class StockPredictor:
 
     returns = self.data['Returns'].dropna()
     current_price = self.data['Close'].iloc[-1]
-    position_value = current_price * n_shares  # Use the passed n_shares here
+    position_value = current_price * n_shares
 
     mean_return = returns.mean()
     std_return = returns.std()
     z_score = stats.norm.ppf(1 - confidence_level)
 
-    # Calculate VaR values - now using n_shares consistently
+    # Calculate VaR values
     parametric_var = position_value * (
             z_score * std_return * np.sqrt(holding_period) - mean_return * holding_period)
     historical_var = position_value * returns.quantile(1 - confidence_level) * np.sqrt(holding_period)
