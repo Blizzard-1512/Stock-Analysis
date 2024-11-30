@@ -130,7 +130,8 @@ class StockPredictor:
         'Benchmark_VaR': float(benchmark_var),
         'Required_Capital': required_capital
     }
-return self.var_metrics
+    
+    return self.var_metrics
 
     def train_model(self, validation_size: int = 30) -> dict:
         try:
