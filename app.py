@@ -416,12 +416,17 @@ def main():
 
             # Prediction section
             st.markdown("### Price Predictions")
+            
+            prediction_models = ['TAES', 'LSTM', 'RNN', 'ARIMA']
+            selected_model = st.selectbox("Select Prediction Model", prediction_models)
+            days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
+            
             if st.button("Predict Stock Prices"):
-                with st.spinner("Training model and generating predictions..."):
+                with st.spinner("Training model {selected_model} and generating predictions for next {days} business days..."):
                     # Train the prediction model
                     predictor.train_model()
                     # Generate future price predictions
-                    predictions = predictor.predict_future()
+                    predictions = predictor.predict_future(days=days)
 
                     st.markdown("#### Predicted Prices for Next 5 Business Days")
                     pred_df = pd.DataFrame({
