@@ -8,6 +8,7 @@ from scipy import stats
 from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from sklearn.preprocessing import MinMaxScaler
 
 # Custom CSS to enhance the app's appearance
 # Set page config
