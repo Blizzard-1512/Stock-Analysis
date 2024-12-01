@@ -684,19 +684,19 @@ def main():
             n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
             col1, col2 = st.columns([2,1])
             with col1:
-                freq = st.number_input("Enter the holding period","")
+                freq = st.number_input("Enter the holding period","", min_value=1.0, value=1.0, max_value=500.0, step=1.0)
 
             with col2:
                 freq_mode = st.selectbox("Select frequency mode", freq_dict)
 
             if freq_mode == 'Years':
-                holding_period = freq*365
+                holding_period = freq * 365
 
             elif freq_mode == 'Months':
-                holding_period = freq*30
+                holding_period = freq * 30
 
             elif freq_mode == 'Weeks':
-                holding_period = freq*7
+                holding_period = freq * 7
 
             else:
                 holding_period = freq
