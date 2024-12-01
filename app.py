@@ -641,17 +641,15 @@ def main():
                 with st.spinner(f"Training models and generating predictions for next {days} business days..."):
                     # Initialize predictions DataFrame
                     all_predictions = pd.DataFrame()
-                    # Train and predict for each model
-                for model in selected_model:
+                    
                     try:
-                        # Train the model based on the type
                         if selected_model == 'TAES':
                             predictor.train_taes_model()
                         elif selected_model == 'LSTM':
                             predictor.train_lstm_model()
                         elif selected_model == 'RNN':
                             predictor.train_rnn_model()
-                        elif selected_model == 'ARIMA':
+                        else: 
                             predictor.train_arima_model()
                             
                             predictions = predictor.predict_future(days=days, model=selected_model)
