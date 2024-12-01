@@ -683,7 +683,7 @@ def main():
             col1, col2 = st.columns([2, 1])
             
             with col1:
-                freq = st.number_input("Enter the holding period", "").strip().upper()
+                freq = st.number_input("Enter the holding period", "")
                 
             with col2:
                 years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
