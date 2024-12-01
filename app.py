@@ -411,7 +411,7 @@ class StockPredictor:
         
         elif model == 'ARIMA':
             # ARIMA prediction
-            arima_model = self.models[model]['model']
+            arima_model = self.models['ARIMA']['model']
             if days > len(self.data):
                 raise ValueError("Prediction period exceeds available data length.")
             predictions = arima_model.forecast(steps=days)
