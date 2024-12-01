@@ -684,7 +684,7 @@ def main():
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                     
                     except Exception as e:
-                        st.error(f"Error predicting with {model} model: {str(e)}")
+                        st.error(f"Error predicting with {selected_model} model: {str(e)}")
                         
                         
                 st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
