@@ -147,7 +147,7 @@ class StockPredictor:
         # Build LSTM Model
         input_shape = (data['X_train'].shape[1], 1)
         model = Sequential([
-            Input(shape=input_shape)
+            Input(shape=input_shape),
             LSTM(50, activation='relu', return_sequences=True),
             LSTM(50, activation='relu'),
             Dense(1)
