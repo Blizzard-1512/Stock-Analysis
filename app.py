@@ -693,7 +693,7 @@ def main():
                 holding_period = freq*365
 
             elif selected_days_freq == 'Months':
-                holding_period = freq*30.44
+                holding_period = freq*30
 
             elif selected_days_freq == 'Weeks':
                 holding_period = freq*7
