@@ -72,7 +72,7 @@ class StockPredictor:
         self.data = None
         self.model = None
         self.model_fit = None
-        self.predictions = {}
+        self.predictions = None
         self.metrics = {}
         self.var_metrics = {}
 
@@ -264,7 +264,7 @@ class StockPredictor:
                 st.error(f"Error in training: {str(e)}")
                 return None
 
-    def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: float = 100) -> dict:
+    def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
         if self.data is None:
             raise ValueError("No data available. Call fetch_data() first.")
 
@@ -308,114 +308,104 @@ class StockPredictor:
         return self.var_metrics
 
     def predict_future(self, days: int = 5, method='Trend-adjusted exponential smoothing'):
-        """
-        Predict future prices with robust error handling and fallback
+        """Predict future prices based on selected method"""
         
-        Args:
-        days (int): Number of days to predict
-        method (str): Prediction method to use
+        last_date = self.data.index[-1]
+        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
         
-        Returns:
-        pd.Series: Predicted prices with future dates
-        """
-        # Ensure data is available
-        if self.data is None:
-            raise ValueError("No stock data available. Fetch data first.")
-            last_date = self.data.index[-1]
-            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
+        try:
             
-            def trend_adjusted_prediction():
+            if method in ['TAES', 'Trend-adjusted exponential smoothing']:
+                # Fallback calculation for TAES method
                 last_prices = self.data['Close'].tail(20)
                 last_price = last_prices.iloc[-1]
                 avg_change = last_prices.diff().mean()
                 trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                predictions = [last_price + (i + 1) * (avg_change + trend) for i in range(days)]
-                return pd.Series(predictions, index=future_dates)
-                
-                try:
-                    if method in ['TAES', 'Trend-adjusted exponential smoothing']:
-                        return trend_adjusted_prediction()
+                predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
                     
-                    elif method == 'LSTM':
-                        # Ensure LSTM model is trained
-                        if self.model is None:
-                            print("Training LSTM model...")
-                            self.train_lstm_model()
-                            if self.model is None:
-                                print("LSTM model training failed. Falling back to trend prediction.")
-                                return trend_adjusted_prediction()
-                                
-                                last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                                predictions_scaled = []
-                                current_sequence = last_sequence
-                                
-                                for _ in range(days):
-                                    next_pred_scaled = self.model.predict(current_sequence)
-                                    predictions_scaled.append(next_pred_scaled[0, 0])
-                                    current_sequence = np.roll(current_sequence, -1, axis=1)
-                                    current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                                    
-                                    predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                                    return pd.Series(predictions, index=future_dates)
+                self.predictions = pd.Series(predictions, index=future_dates)
+                    
+                return self.predictions
+            
+            elif method == 'LSTM':
+                
+                if self.model is None:
+                    
+                    self.train_lstm_model()
+                    last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+                    predictions_scaled = []
+                    current_sequence = last_sequence
+                    
+                    for _ in range(days):
+                        next_pred_scaled = self.model.predict(current_sequence)
+                        predictions_scaled.append(next_pred_scaled[0, 0])
+                        current_sequence = np.roll(current_sequence, -1, axis=1)
+                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
                             
-                    elif method == 'RNN':
-                        if self.model is None:
-                            print("Training RNN model...")
-                            self.train_rnn_model()
+                        self.predictions = pd.Series(predictions, index=future_dates)
                             
-                            if self.model is None:
-                                
-                                print("RNN model training failed. Falling back to trend prediction.")
-                                return trend_adjusted_prediction()
-                                
-                                last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                                
-                                predictions_scaled = []
-                                current_sequence = last_sequence
-                                
-                                for _ in range(days):
-                                    
-                                    next_pred_scaled = self.model.predict(current_sequence)
-                                    predictions_scaled.append(next_pred_scaled[0, 0])
-                                    current_sequence = np.roll(current_sequence, -1, axis=1)
-                                    current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                                    
-                                    predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                                    
-                                    return pd.Series(predictions, index=future_dates)
+                        return self.predictions 
+                
+                elif method == 'RNN':
+                    
+                    if self.model is None:
+                        
+                        self.train_rnn_model()
+                        last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+                        predictions_scaled = []
+                        current_sequence = last_sequence
                             
+                        for _ in range(days):
+                            next_pred_scaled = self.model.predict(current_sequence)
+                            predictions_scaled.append(next_pred_scaled[0, 0])
+                            current_sequence = np.roll(current_sequence, -1, axis=1)
+                            current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                            predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                                
+                            self.predictions = pd.Series(predictions, index=future_dates)
+                            
+                            return self.predictions
+                    
                     elif method == 'ARIMA':
                         
                         if self.model_fit is None:
-                            print("Training ARIMA model...")
+                            
                             self.train_arima_model()
+                            predictions = self.model_fit.forecast(steps=days)
+                            self.predictions = pd.Series(predictions, index=future_dates)
                             
-                            if self.model_fit is None:
-                                print("ARIMA model training failed. Falling back to trend prediction.")
-                                return trend_adjusted_prediction()
-                                
-                                predictions = self.model_fit.forecast(steps=days)
-                                return pd.Series(predictions, index=future_dates)
-                            
-                    else:
+                            return self.predictions
                         
-                        print(f"Unsupported method: {method}. Using trend prediction.")
-                        return trend_adjusted_prediction()
+                        else:
+                            raise ValueError(f"Unsupported prediction method: {method}")
+        
+        except Exception as e:
+            
+            # Fallback to trend-adjusted exponential smoothing if any method fails
+            
+            st.error(f"Prediction error in {method} method: {str(e)}")
+            last_prices = self.data['Close'].tail(20)
+            last_price = last_prices.iloc[-1]
+            avg_change = last_prices.diff().mean()
+            trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
                 
-                except Exception as e: 
-                    print(f"Prediction error in {method} method: {str(e)}")
-                    return trend_adjusted_prediction()
-                
-                except Exception as e:
-                    # Log the error for debugging
-                    print(f"Prediction error in {method} method: {str(e)}")
-                    last_price = self.data['Close'].iloc[-1]
-                    last_prices = self.data['Close'].tail(20)
-                    avg_change = last_prices.diff().mean()
-                    trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                    predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-                    
-                    return pd.Series(predictions, index=future_dates)
+            predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
+            self.predictions = pd.Series(predictions, index=future_dates)
+            return self.predictions
+        
+        except Exception as e:
+            
+            # Log the error for debugging
+            
+            print(f"Prediction error in {method} method: {str(e)}")
+            last_price = self.data['Close'].iloc[-1]
+            last_prices = self.data['Close'].tail(20)
+            avg_change = last_prices.diff().mean()
+            trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
+            predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
+            
+            return pd.Series(predictions, index=future_dates)
 
     def create_plots(self):
         if self.data is None:
@@ -655,60 +645,48 @@ def main():
                     try:
                         # Train the selected model
                         predictor.train_model(method=selected_model)
+
+                        # Generate future price predictions using the selected model
                         predictions = predictor.predict_future(days=days, method=selected_model)
-                        
+
                         st.markdown(f"#### Predicted Prices for Next {days} Business Days using {selected_model}")
                         pred_df = pd.DataFrame({
                             'Date': predictions.index.strftime('%Y-%m-%d'),
                             'Predicted Price': predictions.values
                         })
+
+                        # Display predictions in a styled table
                         st.markdown("""
-                        <div class="prediction-table">
-                        """, unsafe_allow_html=True)
+                            <div class="prediction-table">
+                            """, unsafe_allow_html=True)
                         st.dataframe(
                             pred_df.style.format({
                                 'Date': lambda x: x,
                                 'Predicted Price': '${:.2f}'
+                            }).set_properties(**{
+                                # 'background-color': 'lightskyblue',
+                                # 'color': 'black'
                             }).highlight_max(
                                 subset=['Predicted Price'], color='#2b6929'
                             ),
                             use_container_width=True
                         )
                         st.markdown("</div>", unsafe_allow_html=True)
+
                     except Exception as e:
                         # Handle and display any errors that occur during prediction
                         st.error(f"Prediction Error: {str(e)}")
-                        
-            
+
             # Risk Analysis section
             st.markdown("### Risk Analysis")
             # Input number of shares for risk calculation
-            freq_dict = ['Years', 'Months', 'Weeks', 'Days']
             n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
-            col1, col2 = st.columns([2,1])
-            with col1:
-                freq = st.number_input("Enter the holding period", min_value=1.0, value=1.0, max_value=500.0, step=1.0)
-
-            with col2:
-                freq_mode = st.selectbox("Select frequency mode", freq_dict)
-
-            if freq_mode == 'Years':
-                holding_period = freq * 365
-
-            elif freq_mode == 'Months':
-                holding_period = freq * 30
-
-            elif freq_mode == 'Weeks':
-                holding_period = freq * 7
-
-            else:
-                holding_period = freq
 
             if st.button("Calculate Risk Metrics"):
                 with st.spinner("Calculating Value at Risk..."):
                     try:
                         # Calculate VaR metrics
-                        var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
+                        var_metrics = predictor.calculate_var(n_shares=n_shares)
 
                         # Prepare VaR data for display
                         var_data = []
