@@ -360,7 +360,7 @@ class StockPredictor:
 
         return self.var_metrics
 
-    def predict_future(self, days: int = 5, model: str = 'TAES'):
+    def predict_future(self, days: int = 5, model: str == 'TAES'):
         """
         Predict future stock prices using specified model
         """
