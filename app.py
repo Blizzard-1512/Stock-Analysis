@@ -185,7 +185,7 @@ class StockPredictor:
 
         model.fit(data['X_train'], data['y_train'],
                   validation_data=(data['X_val'], data['y_val']),
-                  epochs=50, batch_size=32, verbose=0)
+                  epochs=20, batch_size=32, verbose=0)
 
         self.model = model
 
