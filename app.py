@@ -308,81 +308,104 @@ class StockPredictor:
         return self.var_metrics
 
     def predict_future(self, days: int = 5, method='Trend-adjusted exponential smoothing'):
-        """Predict future prices based on selected method"""
-        last_date = self.data.index[-1]
-        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
+        """
+        Predict future prices with robust error handling and fallback
         
-        try:
-            if method in ['TAES', 'Trend-adjusted exponential smoothing']:
-            # Fallback calculation for TAES method
+        Args:
+        days (int): Number of days to predict
+        method (str): Prediction method to use
+        
+        Returns:
+        pd.Series: Predicted prices with future dates
+        """
+        # Ensure data is available
+        if self.data is None:
+            raise ValueError("No stock data available. Fetch data first.")
+            last_date = self.data.index[-1]
+            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
+            
+            def trend_adjusted_prediction():
                 last_prices = self.data['Close'].tail(20)
                 last_price = last_prices.iloc[-1]
                 avg_change = last_prices.diff().mean()
                 trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
+                predictions = [last_price + (i + 1) * (avg_change + trend) for i in range(days)]
+                return pd.Series(predictions, index=future_dates)
                 
-                self.predictions = pd.Series(predictions, index=future_dates)
-                return self.predictions
-            
-            elif method == 'LSTM':
-                if self.model is None:
-                    self.train_lstm_model()
-                    last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                    predictions_scaled = []
-                    current_sequence = last_sequence
-                    
-                    for _ in range(days):
-                        next_pred_scaled = self.model.predict(current_sequence)
-                        predictions_scaled.append(next_pred_scaled[0, 0])
-                        current_sequence = np.roll(current_sequence, -1, axis=1)
-                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                        
-                        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                        self.predictions = pd.Series(predictions, index=future_dates)
-                        return self.predictions
-                
-            elif method == 'RNN':
-                if self.model is None:
-                    self.train_rnn_model()
-                        
-                    last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                    predictions_scaled = []
-                    current_sequence = last_sequence
-                        
-                    for _ in range(days):
-                        next_pred_scaled = self.model.predict(current_sequence)
-                        predictions_scaled.append(next_pred_scaled[0, 0])
-                        current_sequence = np.roll(current_sequence, -1, axis=1)
-                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                            
-                        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                        self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                        return self.predictions
-                    
-            elif method == 'ARIMA':
-                if self.model_fit is None:
-                    self.train_arima_model()
-                    predictions = self.model_fit.forecast(steps=days)
-                    self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                    return self.predictions
-                        
-            else:
-                raise ValueError(f"Unsupported prediction method: {method}")
+                try:
+                    if method in ['TAES', 'Trend-adjusted exponential smoothing']:
+                        return trend_adjusted_prediction()
         
-        except Exception as e:
-            
-            # Fallback to trend-adjusted exponential smoothing if any method fails
-            st.error(f"Prediction error in {method} method: {str(e)}")
-            last_prices = self.data['Close'].tail(20)
-            last_price = last_prices.iloc[-1]
-            avg_change = last_prices.diff().mean()
-            trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-            predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-            self.predictions = pd.Series(predictions, index=future_dates)
-            
-            return self.predictions
+        elif method == 'LSTM':
+            # Ensure LSTM model is trained
+            if self.model is None:
+                print("Training LSTM model...")
+                self.train_lstm_model()
+                
+                if self.model is None:
+                    print("LSTM model training failed. Falling back to trend prediction.")
+                    return trend_adjusted_prediction()
+                    
+                    last_sequence = self.scaler.transform(
+                        self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+                    predictions_scaled = []
+                    current_sequence = last_sequence
+                    
+                    for _ in range(days):
+                        next_pred_scaled = self.model.predict(current_sequence)
+                        predictions_scaled.append(next_pred_scaled[0, 0])
+                        current_sequence = np.roll(current_sequence, -1, axis=1)
+                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                        
+                        predictions = self.scaler.inverse_transform(
+                            np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                        
+                        return pd.Series(predictions, index=future_dates)
+                
+        elif method == 'RNN':
+            if self.model is None:
+                print("Training RNN model...")
+                self.train_rnn_model()
+                
+                if self.model is None:
+                    print("RNN model training failed. Falling back to trend prediction.")
+                    return trend_adjusted_prediction()
+                    
+                    last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+                    
+                    predictions_scaled = []
+                    current_sequence = last_sequence
+                    
+                    for _ in range(days):
+                        next_pred_scaled = self.model.predict(current_sequence)
+                        predictions_scaled.append(next_pred_scaled[0, 0])
+                        current_sequence = np.roll(current_sequence, -1, axis=1)
+                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                        
+                        predictions = self.scaler.inverse_transform(
+                            np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                        
+                        return pd.Series(predictions, index=future_dates)
+        
+        elif method == 'ARIMA':
+            if self.model_fit is None:
+                print("Training ARIMA model...")
+                self.train_arima_model()
+                
+                if self.model_fit is None:
+                    print("ARIMA model training failed. Falling back to trend prediction.")
+                    return trend_adjusted_prediction()
+                    
+                    predictions = self.model_fit.forecast(steps=days)
+                    return pd.Series(predictions, index=future_dates)
+                
+        else:
+            print(f"Unsupported method: {method}. Using trend prediction.")
+            return trend_adjusted_prediction()
+
+except Exception as e: 
+print(f"Prediction error in {method} method: {str(e)}")
+return trend_adjusted_prediction()
         
         except Exception as e:
             # Log the error for debugging
