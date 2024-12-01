@@ -169,7 +169,7 @@ class StockPredictor:
             'Method': 'LSTM'
         }
 
-        return val_pred
+        return self.metrics
 
     def train_rnn_model(self, validation_size: int = 30):
         """Train RNN model for stock price prediction"""
@@ -332,48 +332,53 @@ class StockPredictor:
                 if self.model is None:
                     
                     self.train_lstm_model()
-                    
-                    predictions = val_pred 
-                    
-                    if predictions is not None:  # Check if predictions are generated
-                        self.predictions = pd.Series(predictions, index=future_dates) 
-                        
-                        return self.predictions 
-                    
-                    else:
-                        raise ValueError("Predictions returned None for LSTM model.")
-                        
-                    
-            elif method == 'RNN':
-                
-                if self.model is None:
-                    self.train_rnn_model()
                     last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
                     predictions_scaled = []
                     current_sequence = last_sequence
-                            
+                    
                     for _ in range(days):
                         next_pred_scaled = self.model.predict(current_sequence)
                         predictions_scaled.append(next_pred_scaled[0, 0])
                         current_sequence = np.roll(current_sequence, -1, axis=1)
                         current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
                         predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                                
+                            
                         self.predictions = pd.Series(predictions, index=future_dates)
                             
-                        return self.predictions
+                        return self.predictions 
+                
+                elif method == 'RNN':
                     
-            elif method == 'ARIMA':
-                if self.model_fit is None:
-                    
-                    self.train_arima_model()
-                    predictions = self.model_fit.forecast(steps=days)
-                    self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                    return self.predictions
+                    if self.model is None:
                         
-                else:
-                    raise ValueError(f"Unsupported prediction method: {method}")
+                        self.train_rnn_model()
+                        last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+                        predictions_scaled = []
+                        current_sequence = last_sequence
+                            
+                        for _ in range(days):
+                            next_pred_scaled = self.model.predict(current_sequence)
+                            predictions_scaled.append(next_pred_scaled[0, 0])
+                            current_sequence = np.roll(current_sequence, -1, axis=1)
+                            current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                            predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                                
+                            self.predictions = pd.Series(predictions, index=future_dates)
+                            
+                            return self.predictions
+                    
+                    elif method == 'ARIMA':
+                        
+                        if self.model_fit is None:
+                            
+                            self.train_arima_model()
+                            predictions = self.model_fit.forecast(steps=days)
+                            self.predictions = pd.Series(predictions, index=future_dates)
+                            
+                            return self.predictions
+                        
+                        else:
+                            raise ValueError(f"Unsupported prediction method: {method}")
         
         except Exception as e:
             
