@@ -264,7 +264,7 @@ class StockPredictor:
                 st.error(f"Error in training: {str(e)}")
                 return None
 
-    def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
+    def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: float = 100) -> dict:
         if self.data is None:
             raise ValueError("No data available. Call fetch_data() first.")
 
