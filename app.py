@@ -623,13 +623,11 @@ def main():
                 try:
                     predictor = StockPredictor(ticker, years)
                     # Show a loading spinner while fetching data
-                with st.spinner(f'Fetching data for {ticker}...'):
-                    # Fetch historical stock data
-                    predictor.fetch_data()
-                    
-                    stock_metrics = get_stock_metrics(ticker)
-                    
-                    current_price = predictor.data['Close'].iloc[-1]
+                    with st.spinner(f'Fetching data for {ticker}...'):
+                        # Fetch historical stock data
+                        predictor.fetch_data()
+                        stock_metrics = get_stock_metrics(ticker)
+                        current_price = predictor.data['Close'].iloc[-1]
                     daily_change = (predictor.data['Close'].iloc[-1] - predictor.data['Close'].iloc[-2]) / \
                     predictor.data['Close'].iloc[-2] * 100
                     
@@ -795,7 +793,7 @@ def main():
                                                                     )
                                                                     st.markdown("</div>", unsafe_allow_html=True)
                                         
-                                        except Exception as e:
+                except Exception as e:
                                             # Handle and display any errors that occur during processing
                                             st.error(f"Error: {str(e)}")
                                             
