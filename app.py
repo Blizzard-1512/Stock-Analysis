@@ -292,8 +292,11 @@ class StockPredictor:
 
             # Make in-sample predictions
             predictions = model.predict()
+            
             if len(predictions) == 0:
                 raise ValueError("ARIMA predictions failed due to insufficient data.")
+
+            predictions = np.array(predictions)
 
             # Calculate metrics
             aligned_prices = prices[-len(predictions):]  # Take only the last 'len(predictions)' price 
