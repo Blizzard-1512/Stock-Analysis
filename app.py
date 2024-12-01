@@ -649,12 +649,16 @@ def main():
                             model_pred_df = pd.DataFrame({
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
+                                })
+                                
                         elif selected_model == 'LSTM':
                             predictor.train_lstm_model()
                             predictions = predictor.predict_future(days=days, model=selected_model)
                             model_pred_df = pd.DataFrame({
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
+                                })
+                                
                         elif selected_model == 'RNN':
                             predictor.train_rnn_model()
                             predictions = predictor.predict_future(days=days, model=selected_model)
