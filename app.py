@@ -638,7 +638,7 @@ def main():
             days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
             
             if st.button("Predict Stock Prices"):
-                with st.spinner(f"Training models and generating predictions for next {days} business days..."):
+                with st.spinner(f"Training {selected_model} model and generating predictions for next {days} business days..."):
                     # Initialize predictions DataFrame
                     all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                     
@@ -650,6 +650,7 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                                 })
+                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
                         elif selected_model == 'LSTM':
                             predictor.train_lstm_model()
@@ -658,6 +659,7 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                                 })
+                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
                         elif selected_model == 'RNN':
                             predictor.train_rnn_model()
