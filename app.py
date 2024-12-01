@@ -289,7 +289,7 @@ class StockPredictor:
             model = ARIMA(prices, order=(5,1,0)).fit()
 
             # Make in-sample predictions
-            predictions = model_fit.predict()
+            predictions = model.predict()
 
             # Calculate metrics
             mape = mean_absolute_percentage_error(prices[len(predictions):], predictions)
