@@ -155,7 +155,7 @@ class StockPredictor:
         # Train model
         model.fit(data['X_train'], data['y_train'],
                   validation_data=(data['X_val'], data['y_val']),
-                  epochs=50, batch_size=32, verbose=0)
+                  epochs=20, batch_size=32, verbose=0)
 
         self.model = model
 
@@ -326,7 +326,7 @@ class StockPredictor:
                 
                 elif method == 'LSTM':
                     
-                    if self.model is None:
+                    #if self.model is None:
                         self.train_lstm_model()
                         last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
                         predictions_scaled = []
@@ -340,7 +340,7 @@ class StockPredictor:
                     
                     elif method == 'RNN':
                         
-                        if self.model is None:
+                        #if self.model is None:
                             self.train_rnn_model()
                             
                             last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
@@ -356,7 +356,7 @@ class StockPredictor:
                                 predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
                         
                         elif method == 'ARIMA':
-                            if self.model_fit is None:
+                            #if self.model_fit is None:
                                 self.train_arima_model()
                                 
                                 predictions = self.model_fit.forecast(steps=days)
