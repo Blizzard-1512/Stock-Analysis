@@ -656,12 +656,12 @@ def main():
                     try:
                         if selected_model == 'Term Adjusted Exponential Smoothening':
                             predictor.train_taes_model()
-                            predictions = predictor.predict_future(days=days, model=selected_model)
+                            predictions = predictor.predict_future(days=days, model='TAES')
                             model_pred_df = pd.DataFrame({
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                                 })
-                            model_pred_df['Model'] = selected_model
+                            #model_pred_df['Model'] = selected_model
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
                         elif selected_model == 'Long Short-Term Memory':
@@ -692,7 +692,7 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                             })
-                            model_pred_df['Model'] = selected_model
+                            #model_pred_df['Model'] = selected_model
                             
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                     
