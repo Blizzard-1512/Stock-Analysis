@@ -688,74 +688,75 @@ def main():
                      n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
                      days_freq = ['Years', 'Months', 'Weeks', 'Days']
                      if selected_days_freq == 'Years':
-                            holding_period = freq*365
-                        
-                        elif selected_days_freq == 'Months':
-                            holding_period = freq*30
-                        
-                        elif selected_days_freq == 'Weeks':
-                            holding_period = freq*7
-                        
-                        else:
-                            holding_period = freq
-                            
-                            
-                            if st.button("Calculate Risk Metrics"):
-                with st.spinner("Calculating Value at Risk..."):
-                    try:
-                        # Calculate VaR metrics
-                        var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
-
-                        # Prepare VaR data for display
-                        var_data = []
-                        methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
-
-                        for method in methods:
-                            # Safely handle VaR value retrieval
-                            var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
-
-                            # Safely handle required capital
-                            if method != 'Benchmark':
-                                required_capital = var_metrics['Required_Capital'].get(method, 0)
-                            else:
-                                required_capital = 0
-
-                            var_data.append({
-                                'Method': method,
-                                'VaR': var_value,
-                                'Required Capital': required_capital
-                            })
-
-                        var_df = pd.DataFrame(var_data)
-
-                        # Display VaR metrics in a styled table
-                        st.markdown("#### Value at Risk (VaR) Analysis")
-                        st.markdown("""
-                                <div class="prediction-table">
-                                """, unsafe_allow_html=True)
-                        st.dataframe(
-                            var_df.style.format({
-                                'VaR': '${:,.2f}',
-                                'Required Capital': '${:,.2f}'
-                            }).set_properties(**{
-                                # 'background-color': 'lightyellow',
-                                # 'color': 'black'
-                            }).highlight_min(
-                                subset=['VaR'], color='#2b6929'
-                            ),
-                            use_container_width=True
-                        )
-                        st.markdown("</div>", unsafe_allow_html=True)
-
-                    except Exception as e:
-                        # Handle and display any errors that occur during risk calculation
-                        st.error(f"Risk Calculation Error: {str(e)}")
-
-        except Exception as e:
-            # Handle and display any errors that occur during initial processing
-            st.error(f"Error: {str(e)}")
-
-
+                         holding_period = freq*365
+                     
+                     elif selected_days_freq == 'Months':
+                         holding_period = freq*30
+                     
+                     elif selected_days_freq == 'Weeks':
+                         holding_period = freq*7
+                     
+                     else:
+                         holding_period = freq
+                         
+                         if st.button("Calculate Risk Metrics"):
+                             with st.spinner("Calculating Value at Risk..."):
+                                 
+                                 try:
+                                     # Calculate VaR metrics
+                                     var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
+                                     
+                                     var_data = []
+                                     
+                                     methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
+                                     
+                                     for method in methods:
+                                         
+                                         # Safely handle VaR value retrieval
+                                         
+                                         var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
+                                         
+                                         if method != 'Benchmark':
+                                             
+                                             required_capital = var_metrics['Required_Capital'].get(method, 0)
+                                         
+                                         else:
+                                             required_capital = 0
+                                             
+                                             var_data.append({
+                                                 'Method': method,
+                                                 'VaR': var_value,
+                                                 'Required Capital': required_capital
+                                             })
+                                             
+                                             var_df = pd.DataFrame(var_data)
+                                             
+                                             st.markdown("#### Value at Risk (VaR) Analysis")
+                                             st.markdown("""
+                                             <div class="prediction-table">
+                                             """, unsafe_allow_html=True)
+                                             st.dataframe(
+                                                 var_df.style.format({
+                                                     'VaR': '${:,.2f}',
+                                                     'Required Capital': '${:,.2f}'
+                                                 }).set_properties(**{
+                                                     # 'background-color': 'lightyellow',
+                                                     # 'color': 'black'
+                                                 }).highlight_min(
+                                                     subset=['VaR'], color='#2b6929'
+                                                 ),
+                                                 use_container_width=True
+                                             )
+                                             st.markdown("</div>", unsafe_allow_html=True)
+                                 
+                                 except Exception as e:
+                                     # Handle and display any errors that occur during risk calculation
+                                     st.error(f"Risk Calculation Error: {str(e)}")
+                                 
+                                 except Exception as e:
+                                     # Handle and display any errors that occur during initial processing
+                                     st.error(f"Error: {str(e)}")
+                                     
 # Main execution block
 if __name__ == "__main__":
     main()
