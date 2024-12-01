@@ -286,8 +286,7 @@ class StockPredictor:
             # Fit ARIMA model
             # Note: In a real implementation, you'd use grid search or auto_arima 
             # to find the best parameters
-            model = ARIMA(prices, order=(5,1,0))
-            model_fit = model.fit()
+            model_fit = ARIMA(prices, order=(5,1,0)).fit()
 
             # Make in-sample predictions
             predictions = model_fit.predict()
@@ -633,7 +632,7 @@ def main():
             # Prediction section
             st.markdown("### Price Predictions")
             
-            prediction_models = ['TAES', 'LSTM', 'RNN', 'ARIMA']
+            prediction_models = ['Term Adjusted Exponential Smoothening', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
             selected_model = st.selectbox("Select Prediction Model", prediction_models)
             days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
             
@@ -643,7 +642,7 @@ def main():
                     all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                     
                     try:
-                        if selected_model == 'TAES':
+                        if selected_model == 'Term Adjusted Exponential Smoothening':
                             predictor.train_taes_model()
                             predictions = predictor.predict_future(days=days, model=selected_model)
                             model_pred_df = pd.DataFrame({
@@ -652,7 +651,7 @@ def main():
                                 })
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
-                        elif selected_model == 'LSTM':
+                        elif selected_model == 'Long Short-Term Memory':
                             predictor.train_lstm_model()
                             predictions = predictor.predict_future(days=days, model=selected_model)
                             model_pred_df = pd.DataFrame({
@@ -661,7 +660,7 @@ def main():
                                 })
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
-                        elif selected_model == 'RNN':
+                        elif selected_model == 'Recurrent Neural Networks':
                             predictor.train_rnn_model()
                             predictions = predictor.predict_future(days=days, model=selected_model)
                             model_pred_df = pd.DataFrame({
@@ -679,7 +678,7 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                             })
-                            model_pred_df['Model'] = model
+                            #model_pred_df['Model'] = model
                             
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                     
