@@ -151,15 +151,34 @@ class StockPredictor:
         """
         Train Trend-Adjusted Exponential Smoothing (existing method)
         """
-        metrics = self.train_model(validation_size)
+        if self.data is None:
+            raise ValueError("No data available. Call fetch_data() first.")
+            
+        prices = self.data['Close']
+        self.last_train_price = prices.iloc[-1]
+        daily_changes = prices.pct_change().dropna()
+        self.avg_daily_change = daily_changes.mean()
+        
+        last_validation_prices = prices.tail(validation_size)
+        x = np.arange(len(last_validation_prices))
+        slope, _ = np.polyfit(x, last_validation_prices.values, 1)
+        self.trend = slope / self.last_train_price
+        
+        metrics = {
+            'Last Training Price': self.last_train_price,
+            'Average Daily Change': self.avg_daily_change,
+            'Trend': self.trend,
+            'Method': 'Term Adjusted Exponential Smoothing'
+        }
+        
         self.models['TAES'] = {
-            'metrics': metrics,
-            'last_train_price': self.last_train_price,
-            'avg_daily_change': self.avg_daily_change,
-            'trend': self.trend
+        'metrics': metrics,
+        'last_train_price': self.last_train_price,
+        'avg_daily_change': self.avg_daily_change,
+        'trend': self.trend
         }
         return metrics
-
+        
     def train_lstm_model(self):
         """
         Train LSTM model (placeholder implementation)
