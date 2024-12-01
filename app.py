@@ -1,3 +1,4 @@
+import self
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -7,10 +8,6 @@ from scipy import stats
 from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from statsmodels.tsa.arima.model import ARIMA
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, RNN, Dense, LSTMCell
-from sklearn.preprocessing import MinMaxScaler
 
 # Set page config
 st.set_page_config(
@@ -44,26 +41,12 @@ st.markdown("""
         color: #1e88e5;
     }
     .prediction-table {
-        background-color: #0e1117;
+        background-color: #f9f9f9;
         border-radius: 10px;
-        margin: 20px 0;
-        color: white; /* Default white text for visibility */
-    }
-    .prediction-table .stDataFrame {
-        background-color: #0e1117 !important;
-        color: white !important;
-    }
-    .prediction-table .stDataFrame thead {
-        background-color: #0e1117 !important;
-        color: white !important;
-    }
-    .prediction-table .stDataFrame th {
-        background-color: #0e1117 !important;
-        color: white !important;
+        margin: 20px 0
     }
     </style>
 """, unsafe_allow_html=True)
-
 
 class StockPredictor:
     def __init__(self, ticker: str, years: int = 10):
@@ -106,163 +89,6 @@ class StockPredictor:
 
         except Exception as e:
             raise ValueError(f"Error fetching data for {self.ticker}: {str(e)}")
-
-    scaler = MinMaxScaler()
-
-    def _prepare_data_for_ml(self, validation_size: int = 30):
-        """Prepare data for machine learning models"""
-        if self.data is None:
-            raise ValueError("No data available. Call fetch_data() first.")
-
-        # Use Close prices for prediction
-        prices = self.data['Close'].values
-        scaled_prices = self.scaler.fit_transform(prices.reshape(-1, 1))
-
-        def create_sequences(data, seq_length=20):
-            X, y = [], []
-            for i in range(len(data) - seq_length):
-                X.append(data[i:i + seq_length])
-                y.append(data[i + seq_length])
-            return np.array(X), np.array(y)
-
-        X_scaled, y_scaled = create_sequences(scaled_prices)
-        # Split train and validation
-        split = -validation_size
-        X_train, X_val = X_scaled[:split], X_scaled[split:]
-        y_train, y_val = y_scaled[:split], y_scaled[split:]
-
-        return {
-            'X_train': X_train,
-            'X_val': X_val,
-            'y_train': y_train,
-            'y_val': y_val,
-            'prices': prices,
-            'scaled_prices': scaled_prices
-        }
-
-    def train_lstm_model(self, validation_size: int = 30):
-        """Train LSTM model for stock price prediction"""
-        data = self._prepare_data_for_ml(validation_size)
-
-        # Build LSTM Model
-        model = Sequential([
-            LSTM(50, activation='relu', input_shape=(data['X_train'].shape[1], 1), return_sequences=True),
-            LSTM(50, activation='relu'),
-            Dense(1)
-        ])
-        model.compile(optimizer='adam', loss='mse')
-
-        # Train model
-        model.fit(data['X_train'], data['y_train'],
-                  validation_data=(data['X_val'], data['y_val']),
-                  epochs=20, batch_size=32, verbose=0)
-
-        self.model = model
-
-        # Make predictions and calculate metrics
-        val_pred_scaled = model.predict(data['X_val'])
-        val_pred = self.scaler.inverse_transform(val_pred_scaled)
-
-        self.metrics = {
-            'MAPE': mean_absolute_percentage_error(data['prices'][-len(val_pred):], val_pred.flatten()),
-            'RMSE': np.sqrt(mean_squared_error(data['prices'][-len(val_pred):], val_pred.flatten())),
-            'Method': 'LSTM'
-        }
-
-        return self.metrics
-
-    def train_rnn_model(self, validation_size: int = 30):
-        """Train RNN model for stock price prediction"""
-        data = self._prepare_data_for_ml(validation_size)
-
-        model = Sequential([
-            RNN(LSTMCell(50), input_shape=(data['X_train'].shape[1], 1), return_sequences=True),
-            RNN(LSTMCell(50)),
-            Dense(1)
-        ])
-
-        model.compile(optimizer='adam', loss='mse')
-
-        model.fit(data['X_train'], data['y_train'],
-                  validation_data=(data['X_val'], data['y_val']),
-                  epochs=50, batch_size=32, verbose=0)
-
-        self.model = model
-
-        val_pred_scaled = model.predict(data['X_val'])
-        val_pred = self.scaler.inverse_transform(val_pred_scaled)
-
-        self.metrics = {
-            'MAPE': mean_absolute_percentage_error(data['prices'][-len(val_pred):], val_pred.flatten()),
-            'RMSE': np.sqrt(mean_squared_error(data['prices'][-len(val_pred):], val_pred.flatten())),
-            'Method': 'RNN'
-        }
-
-        return self.metrics
-
-    def train_arima_model(self, validation_size: int = 30):
-        """Train ARIMA model for stock price prediction"""
-        if self.data is None:
-            raise ValueError("No data available. Call fetch_data() first.")
-
-        prices = self.data['Close']
-        train_data = prices[:-validation_size]
-        val_data = prices[-validation_size:]
-
-        # Fit ARIMA model (p,d,q) - you might want to use grid search or AIC for optimal parameters
-        model = ARIMA(train_data, order=(5, 1, 2))
-        model_fit = model.fit()
-
-        # Make predictions
-        forecast = model_fit.forecast(steps=validation_size)
-
-        self.metrics = {
-            'MAPE': mean_absolute_percentage_error(val_data, forecast),
-            'RMSE': np.sqrt(mean_squared_error(val_data, forecast)),
-            'Method': 'ARIMA'
-        }
-
-        self.model_fit = model_fit
-        return self.metrics
-
-    def train_model(self, method='Trend-adjusted exponential smoothing', validation_size: int = 30):
-        """Train model based on selected method"""
-        if method == 'LSTM':
-            return self.train_lstm_model(validation_size)
-        elif method == 'RNN':
-            return self.train_rnn_model(validation_size)
-        elif method == 'ARIMA':
-            return self.train_arima_model(validation_size)
-        else:
-            # Existing trend-adjusted exponential smoothing method
-            try:
-                if self.data is None:
-                    raise ValueError("No data available. Call fetch_data() first.")
-
-                train_data = self.data[:-validation_size]
-                validation_data = self.data[-validation_size:]
-
-                last_prices = train_data['Close'].tail(20)
-                avg_daily_change = last_prices.diff().mean()
-                trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                last_price = last_prices.iloc[-1]
-                forecast = np.array([last_price + (i + 1) * (avg_daily_change + trend) for i in range(validation_size)])
-
-                self.last_train_price = train_data['Close'].iloc[-1]
-                self.avg_daily_change = train_data['Close'].diff().mean()
-                self.trend = (train_data['Close'].iloc[-1] - train_data['Close'].iloc[-20]) / 20
-
-                self.metrics = {
-                    'MAPE': mean_absolute_percentage_error(validation_data['Close'], forecast),
-                    'RMSE': np.sqrt(mean_squared_error(validation_data['Close'], forecast)),
-                    'Method': 'Trend-adjusted exponential smoothing'
-                }
-
-                return self.metrics
-
-            except Exception as e:
-                st.error(f"Error in training: {str(e)}")
-                return None
 
     def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
         if self.data is None:
@@ -307,90 +133,51 @@ class StockPredictor:
 
         return self.var_metrics
 
-    def predict_future(self, days: int = 5, method='Trend-adjusted exponential smoothing'):
-        """Predict future prices based on selected method"""
-        
-        last_date = self.data.index[-1]
-        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
-        
+    def train_model(self, validation_size: int = 30) -> dict:
         try:
-            if method == 'TAES' or method == 'Trend-adjusted exponential smoothing':
-                if not hasattr(self, 'last_train_price') or not hasattr(self, 'avg_daily_change') or not hasattr(self, 'trend'):
-                # Fallback calculation if attributes are not set
-                    last_prices = self.data['Close'].tail(20)
-                    self.last_train_price = last_prices.iloc[-1]
-                    self.avg_daily_change = last_prices.diff().mean()
-                    self.trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                    
-                    predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend) for i in range(days)])
-                
-                elif method == 'LSTM':
-                    
-                    #if self.model is None:
-                        self.train_lstm_model()
-                        last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                        predictions_scaled = []
-                        current_sequence = last_sequence
-                        for _ in range(days):
-                            next_pred_scaled = self.model.predict(current_sequence)
-                            predictions_scaled.append(next_pred_scaled[0, 0])
-                            current_sequence = np.roll(current_sequence, -1, axis=1)
-                            current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                            predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                    
-                    elif method == 'RNN':
-                        
-                        #if self.model is None:
-                            self.train_rnn_model()
-                            
-                            last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                            predictions_scaled = []
-                            current_sequence = last_sequence
-                            
-                            for _ in range(days):
-                                next_pred_scaled = self.model.predict(current_sequence)
-                                predictions_scaled.append(next_pred_scaled[0, 0])
-                                current_sequence = np.roll(current_sequence, -1, axis=1)
-                                current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                                
-                                predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                        
-                        elif method == 'ARIMA':
-                            #if self.model_fit is None:
-                                self.train_arima_model()
-                                
-                                predictions = self.model_fit.forecast(steps=days)
-                            
-                            
-                            else:
-                                
-                                raise ValueError(f"Unsupported prediction method: {method}")
-                                
-                                
-                                if predictions is None:
-                                    
-                                    last_prices = self.data['Close'].tail(20)
-                                    last_price = last_prices.iloc[-1]
-                                    avg_change = last_prices.diff().mean()
-                                    trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                                    predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-                                    
-                                    predictions = np.maximum(predictions, 0.01)
-                                    
-                                    self.predictions = pd.Series(predictions, index=future_dates)
-                                    
-                                    return self.predictions
-        except Exception as e:
-            # Log the error for debugging
-            print(f"Prediction error in {method} method: {str(e)}")
-            last_price = self.data['Close'].iloc[-1]
-            last_prices = self.data['Close'].tail(20)
-            avg_change = last_prices.diff().mean()
+            if self.data is None:
+                raise ValueError("No data available. Call fetch_data() first.")
+
+            train_data = self.data[:-validation_size]
+            validation_data = self.data[-validation_size:]
+
+            last_prices = train_data['Close'].tail(20)
+            avg_daily_change = last_prices.diff().mean()
             trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-            
-            predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-            
-            return pd.Series(predictions, index=future_dates)
+            last_price = last_prices.iloc[-1]
+            forecast = np.array([last_price + (i + 1) * (avg_daily_change + trend) for i in range(validation_size)])
+
+            self.last_train_price = train_data['Close'].iloc[-1]
+            self.avg_daily_change = train_data['Close'].diff().mean()
+            self.trend = (train_data['Close'].iloc[-1] - train_data['Close'].iloc[-20]) / 20
+
+            self.metrics = {
+                'MAPE': mean_absolute_percentage_error(validation_data['Close'], forecast),
+                'RMSE': np.sqrt(mean_squared_error(validation_data['Close'], forecast)),
+                'Method': 'Trend-adjusted exponential smoothing'
+            }
+
+            return self.metrics
+
+        except Exception as e:
+            st.error(f"Error in training: {str(e)}")
+            return None
+
+    def predict_future(self, days: int = 5) -> pd.Series:
+        try:
+            last_date = self.data.index[-1]
+            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1),
+                                         periods=days,
+                                         freq='B')
+
+            predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend)
+                                    for i in range(days)])
+
+            self.predictions = pd.Series(predictions, index=future_dates)
+            return self.predictions
+
+        except Exception as e:
+            raise ValueError(f"Error making predictions: {str(e)}")
 
     def create_plots(self):
         if self.data is None:
@@ -516,7 +303,6 @@ class StockPredictor:
 
         return figs
 
-
 def get_stock_metrics(ticker):
     """
     Fetch key stock metrics from Yahoo Finance
@@ -540,11 +326,11 @@ def get_stock_metrics(ticker):
         # Format market cap
         if isinstance(metrics['Market Cap'], (int, float)):
             if metrics['Market Cap'] >= 1e12:
-                metrics['Market Cap'] = f'${metrics["Market Cap"] / 1e12:.2f}T'
+                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e12:.2f}T'
             elif metrics['Market Cap'] >= 1e9:
-                metrics['Market Cap'] = f'${metrics["Market Cap"] / 1e9:.2f}B'
+                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e9:.2f}B'
             else:
-                metrics['Market Cap'] = f'${metrics["Market Cap"] / 1e6:.2f}M'
+                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e6:.2f}M'
 
         return metrics
     except Exception as e:
@@ -616,110 +402,91 @@ def main():
 
             # Prediction section
             st.markdown("### Price Predictions")
-            prediction_models = [
-                'TAES',
-                'LSTM',
-                'RNN',
-                'ARIMA'
-            ]
-            selected_model = st.selectbox("Select Prediction Model", prediction_models)
-            days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
-
             if st.button("Predict Stock Prices"):
-                with st.spinner(f"Training {selected_model} model and generating predictions..."):
-                    try:
-                        # Train the selected model
-                        predictor.train_model(method=selected_model)
+                with st.spinner("Training model and generating predictions..."):
+                    # Train the prediction model
+                    predictor.train_model()
+                    # Generate future price predictions
+                    predictions = predictor.predict_future()
 
-                        # Generate future price predictions using the selected model
-                        predictions = predictor.predict_future(days=days, method=selected_model)
+                    st.markdown("#### Predicted Prices for Next 5 Business Days")
+                    pred_df = pd.DataFrame({
+                        'Date': predictions.index.strftime('%Y-%m-%d'),
+                        'Predicted Price': predictions.values
+                    })
 
-                        st.markdown(f"#### Predicted Prices for Next {days} Business Days using {selected_model}")
-                        pred_df = pd.DataFrame({
-                            'Date': predictions.index.strftime('%Y-%m-%d'),
-                            'Predicted Price': predictions.values
-                        })
-
-                        # Display predictions in a styled table
-                        st.markdown("""
-                            <div class="prediction-table">
-                            """, unsafe_allow_html=True)
-                        st.dataframe(
-                            pred_df.style.format({
-                                'Date': lambda x: x,
-                                'Predicted Price': '${:.2f}'
-                            }).set_properties(**{
-                                # 'background-color': 'lightskyblue',
-                                # 'color': 'black'
-                            }).highlight_max(
-                                subset=['Predicted Price'], color='#2b6929'
-                            ),
-                            use_container_width=True
-                        )
-                        st.markdown("</div>", unsafe_allow_html=True)
-
-                    except Exception as e:
-                        # Handle and display any errors that occur during prediction
-                        st.error(f"Prediction Error: {str(e)}")
+                    # Display predictions in a styled table
+                    st.markdown("""
+                        <div class="prediction-table">
+                        """, unsafe_allow_html=True)
+                    st.dataframe(
+                        pred_df.style.format({
+                            'Date': lambda x: x,
+                            'Predicted Price': '${:.2f}'
+                        }).set_properties(**{
+                            'background-color': 'lightskyblue',
+                            'color': 'black'
+                        }).highlight_max(
+                            subset=['Predicted Price'], color='lightgreen'
+                        ),
+                        use_container_width=True
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
 
             # Risk Analysis section
             st.markdown("### Risk Analysis")
             # Input number of shares for risk calculation
             n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
-
             if st.button("Calculate Risk Metrics"):
+
+
                 with st.spinner("Calculating Value at Risk..."):
-                    try:
-                        # Calculate VaR metrics
-                        var_metrics = predictor.calculate_var(n_shares=n_shares)
+                    # Calculate VaR metrics
+                    var_metrics = predictor.calculate_var(n_shares=n_shares)
 
-                        # Prepare VaR data for display
-                        var_data = []
-                        methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
+                    # Prepare VaR data for display
+                    var_data = []
+                    methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
 
-                        for method in methods:
-                            # Safely handle VaR value retrieval
-                            var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
+                    for method in methods:
+                        # Safely handle VaR value retrieval
+                        var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
 
-                            # Safely handle required capital
-                            if method != 'Benchmark':
-                                required_capital = var_metrics['Required_Capital'].get(method, 0)
-                            else:
-                                required_capital = 0
+                        # Safely handle required capital
+                        if method != 'Benchmark':
+                            required_capital = var_metrics['Required_Capital'].get(method, 0)
+                        else:
+                            required_capital = 0
 
-                            var_data.append({
-                                'Method': method,
-                                'VaR': var_value,
-                                'Required Capital': required_capital
-                            })
+                        var_data.append({
+                            'Method': method,
+                            'VaR': var_value,
+                            'Required Capital': required_capital
+                        })
 
-                        var_df = pd.DataFrame(var_data)
+                    var_df = pd.DataFrame(var_data)
 
-                        # Display VaR metrics in a styled table
-                        st.markdown("#### Value at Risk (VaR) Analysis")
-                        st.markdown("""
-                                <div class="prediction-table">
-                                """, unsafe_allow_html=True)
-                        st.dataframe(
-                            var_df.style.format({
-                                'VaR': '${:,.2f}',
-                                'Required Capital': '${:,.2f}'
-                            }).set_properties(**{
-                                # 'background-color': 'lightyellow',
-                                # 'color': 'black'
-                            }).highlight_min(
-                                subset=['VaR'], color='#2b6929'
-                            ),
-                            use_container_width=True
-                        )
-                        st.markdown("</div>", unsafe_allow_html=True)
-
-                    except Exception as e:
-                        # Handle and display any errors that occur during risk calculation
-                        st.error(f"Risk Calculation Error: {str(e)}")
+                    # Display VaR metrics in a styled table
+                    st.markdown("#### Value at Risk (VaR) Analysis")
+                    st.markdown("""
+                            <div class="prediction-table">
+                            """, unsafe_allow_html=True)
+                    st.dataframe(
+                        var_df.style.format({
+                            'VaR': '${:,.2f}',
+                            'Required Capital': '${:,.2f}'
+                        }).set_properties(**{
+                            'background-color': 'lightyellow',
+                            'color': 'black'
+                        }).highlight_min(
+                            subset=['VaR'], color='lightgreen'
+                        ),
+                        use_container_width=True
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
 
         except Exception as e:
-            # Handle and display any errors that occur during initial processing
+            # Handle and display any errors that occur during processing
             st.error(f"Error: {str(e)}")
 
 
