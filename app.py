@@ -309,27 +309,28 @@ class StockPredictor:
 
     def predict_future(self, days: int = 5, method='Trend-adjusted exponential smoothing'):
         """Predict future prices based on selected method"""
-        # First, validate data exists
         
-        if self.data is None or self.data.empty:
-            raise ValueError("No stock data available for prediction")
-            last_date = self.data.index[-1]
-            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
-            
+        last_date = self.data.index[-1]
+        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
+        
         try:
+            
             if method in ['TAES', 'Trend-adjusted exponential smoothing']:
-                # Trend-adjusted exponential smoothing method
+                # Fallback calculation for TAES method
                 last_prices = self.data['Close'].tail(20)
                 last_price = last_prices.iloc[-1]
                 avg_change = last_prices.diff().mean()
                 trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
                 predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-                
+                    
                 self.predictions = pd.Series(predictions, index=future_dates)
+                    
                 return self.predictions
             
             elif method == 'LSTM':
+                
                 if self.model is None:
+                    
                     self.train_lstm_model()
                     last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
                     predictions_scaled = []
@@ -340,60 +341,61 @@ class StockPredictor:
                         predictions_scaled.append(next_pred_scaled[0, 0])
                         current_sequence = np.roll(current_sequence, -1, axis=1)
                         current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                        
                         predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                            
                         self.predictions = pd.Series(predictions, index=future_dates)
-                        return self.predictions
+                            
+                        return self.predictions 
                 
-            elif method == 'RNN':
-                
-                if self.model is None:
-                    self.train_rnn_model()
+                elif method == 'RNN':
                     
-                    last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                    
-                    predictions_scaled = []
-                    current_sequence = last_sequence
-                    
-                    for _ in range(days):
-                        next_pred_scaled = self.model.predict(current_sequence)
-                        predictions_scaled.append(next_pred_scaled[0, 0])
-                        current_sequence = np.roll(current_sequence, -1, axis=1)
-                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                    if self.model is None:
                         
-                        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                        self.predictions = pd.Series(predictions, index=future_dates)
+                        self.train_rnn_model()
+                        last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+                        predictions_scaled = []
+                        current_sequence = last_sequence
+                            
+                        for _ in range(days):
+                            next_pred_scaled = self.model.predict(current_sequence)
+                            predictions_scaled.append(next_pred_scaled[0, 0])
+                            current_sequence = np.roll(current_sequence, -1, axis=1)
+                            current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                            predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                                
+                            self.predictions = pd.Series(predictions, index=future_dates)
+                            
+                            return self.predictions
+                    
+                    elif method == 'ARIMA':
                         
-                        return self.predictions
-                
-            elif method == 'ARIMA':
-                
-                if self.model_fit is None:
-                    
-                    self.train_arima_model()
-                    predictions = self.model_fit.forecast(steps=days)
-                    self.predictions = pd.Series(predictions, index=future_dates)
-                    
-                    return self.predictions
-                
-            else:
-                raise ValueError(f"Unsupported prediction method: {method}")
+                        if self.model_fit is None:
+                            
+                            self.train_arima_model()
+                            predictions = self.model_fit.forecast(steps=days)
+                            self.predictions = pd.Series(predictions, index=future_dates)
+                            
+                            return self.predictions
+                        
+                        else:
+                            raise ValueError(f"Unsupported prediction method: {method}")
         
         except Exception as e:
             
             # Fallback to trend-adjusted exponential smoothing if any method fails
+            
             st.error(f"Prediction error in {method} method: {str(e)}")
             last_prices = self.data['Close'].tail(20)
             last_price = last_prices.iloc[-1]
             avg_change = last_prices.diff().mean()
             trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-            
+                
             predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
             self.predictions = pd.Series(predictions, index=future_dates)
-            
             return self.predictions
         
         except Exception as e:
+            
             # Log the error for debugging
             
             print(f"Prediction error in {method} method: {str(e)}")
@@ -677,85 +679,65 @@ def main():
 
             # Risk Analysis section
             st.markdown("### Risk Analysis")
-            # Input number of shares & days for risk calculation
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                freq = st.number_input("Enter the holding period", "")
-                
-                with col2:
-                     #years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
-                     selected_days_freq = st.selectbox("Select Frequency", days_freq)
-                     n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
-                     days_freq = ['Years', 'Months', 'Weeks', 'Days']
-                     if selected_days_freq == 'Years':
-                         holding_period = freq*365
-                     
-                     elif selected_days_freq == 'Months':
-                         holding_period = freq*30
-                     
-                     elif selected_days_freq == 'Weeks':
-                         holding_period = freq*7
-                     
-                     else:
-                         holding_period = freq
-                         
-                         if st.button("Calculate Risk Metrics"):
-                             with st.spinner("Calculating Value at Risk..."):
-                                 
-                                 try:
-                                     # Calculate VaR metrics
-                                     var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
-                                     
-                                     var_data = []
-                                     
-                                     methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
-                                     
-                                     for method in methods:
-                                         
-                                         # Safely handle VaR value retrieval
-                                         
-                                         var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
-                                         
-                                         if method != 'Benchmark':
-                                             
-                                             required_capital = var_metrics['Required_Capital'].get(method, 0)
-                                         
-                                         else:
-                                             required_capital = 0
-                                             
-                                             var_data.append({
-                                                 'Method': method,
-                                                 'VaR': var_value,
-                                                 'Required Capital': required_capital
-                                             })
-                                             
-                                             var_df = pd.DataFrame(var_data)
-                                             
-                                             st.markdown("#### Value at Risk (VaR) Analysis")
-                                             st.markdown("""
-                                             <div class="prediction-table">
-                                             """, unsafe_allow_html=True)
-                                             st.dataframe(
-                                                 var_df.style.format({
-                                                     'VaR': '${:,.2f}',
-                                                     'Required Capital': '${:,.2f}'
-                                                 }).set_properties(**{
-                                                     # 'background-color': 'lightyellow',
-                                                     # 'color': 'black'
-                                                 }).highlight_min(
-                                                     subset=['VaR'], color='#2b6929'
-                                                 ),
-                                                 use_container_width=True
-                                             )
-                                             st.markdown("</div>", unsafe_allow_html=True)
-                                 
-                                 except Exception as e:
-                                     # Handle and display any errors that occur during risk calculation
-                                     st.error(f"Risk Calculation Error: {str(e)}")
-                                 
-                                 except Exception as e:
-                                     # Handle and display any errors that occur during initial processing
-                                     st.error(f"Error: {str(e)}")
-                                     # Main execution block
-    if __name__ == "__main__":
+            # Input number of shares for risk calculation
+            n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
+
+            if st.button("Calculate Risk Metrics"):
+                with st.spinner("Calculating Value at Risk..."):
+                    try:
+                        # Calculate VaR metrics
+                        var_metrics = predictor.calculate_var(n_shares=n_shares)
+
+                        # Prepare VaR data for display
+                        var_data = []
+                        methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
+
+                        for method in methods:
+                            # Safely handle VaR value retrieval
+                            var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
+
+                            # Safely handle required capital
+                            if method != 'Benchmark':
+                                required_capital = var_metrics['Required_Capital'].get(method, 0)
+                            else:
+                                required_capital = 0
+
+                            var_data.append({
+                                'Method': method,
+                                'VaR': var_value,
+                                'Required Capital': required_capital
+                            })
+
+                        var_df = pd.DataFrame(var_data)
+
+                        # Display VaR metrics in a styled table
+                        st.markdown("#### Value at Risk (VaR) Analysis")
+                        st.markdown("""
+                                <div class="prediction-table">
+                                """, unsafe_allow_html=True)
+                        st.dataframe(
+                            var_df.style.format({
+                                'VaR': '${:,.2f}',
+                                'Required Capital': '${:,.2f}'
+                            }).set_properties(**{
+                                # 'background-color': 'lightyellow',
+                                # 'color': 'black'
+                            }).highlight_min(
+                                subset=['VaR'], color='#2b6929'
+                            ),
+                            use_container_width=True
+                        )
+                        st.markdown("</div>", unsafe_allow_html=True)
+
+                    except Exception as e:
+                        # Handle and display any errors that occur during risk calculation
+                        st.error(f"Risk Calculation Error: {str(e)}")
+
+        except Exception as e:
+            # Handle and display any errors that occur during initial processing
+            st.error(f"Error: {str(e)}")
+
+
+# Main execution block
+if __name__ == "__main__":
     main()
