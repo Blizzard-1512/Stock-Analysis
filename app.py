@@ -17,6 +17,14 @@ st.set_page_config(
 )
 
 # Custom CSS to enhance the app's appearance
+# Set page config
+st.set_page_config(
+    page_title="Stock Analysis & Prediction",
+    page_icon="📈",
+    layout="wide"
+)
+
+# Custom CSS to enhance the app's appearance
 st.markdown("""
     <style>
     .stApp {
@@ -41,9 +49,22 @@ st.markdown("""
         color: #1e88e5;
     }
     .prediction-table {
-        background-color: #f9f9f9;
+        background-color: #0e1117;
         border-radius: 10px;
-        margin: 20px 0
+        margin: 20px 0;
+        color: white; /* Default white text for visibility */
+    }
+    .prediction-table .stDataFrame {
+        background-color: #0e1117 !important;
+        color: white !important;
+    }
+    .prediction-table .stDataFrame thead {
+        background-color: #0e1117 !important;
+        color: white !important;
+    }
+    .prediction-table .stDataFrame th {
+        background-color: #0e1117 !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -424,10 +445,10 @@ def main():
                             'Date': lambda x: x,
                             'Predicted Price': '${:.2f}'
                         }).set_properties(**{
-                            'background-color': 'lightskyblue',
-                            'color': 'black'
+                            #'background-color': 'lightskyblue',
+                            #'color': 'black'
                         }).highlight_max(
-                            subset=['Predicted Price'], color='lightgreen'
+                            subset=['Predicted Price'], color='#2b6929'
                         ),
                         use_container_width=True
                     )
@@ -476,10 +497,10 @@ def main():
                             'VaR': '${:,.2f}',
                             'Required Capital': '${:,.2f}'
                         }).set_properties(**{
-                            'background-color': 'lightyellow',
-                            'color': 'black'
+                            #'background-color': 'lightyellow',
+                            #'color': 'black'
                         }).highlight_min(
-                            subset=['VaR'], color='lightgreen'
+                            subset=['VaR'], color='#2b6929'
                         ),
                         use_container_width=True
                     )
