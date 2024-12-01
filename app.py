@@ -185,7 +185,7 @@ class StockPredictor:
 
         model.fit(data['X_train'], data['y_train'],
                   validation_data=(data['X_val'], data['y_val']),
-                  epochs=20, batch_size=32, verbose=0)
+                  epochs=50, batch_size=32, verbose=0)
 
         self.model = model
 
@@ -314,95 +314,80 @@ class StockPredictor:
         future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
         
         try:
-            
-            if method in ['TAES', 'Trend-adjusted exponential smoothing']:
-                # Fallback calculation for TAES method
-                last_prices = self.data['Close'].tail(20)
-                last_price = last_prices.iloc[-1]
-                avg_change = last_prices.diff().mean()
-                trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
+            if method == 'TAES' or method == 'Trend-adjusted exponential smoothing':
+                if not hasattr(self, 'last_train_price') or not hasattr(self, 'avg_daily_change') or not hasattr(self, 'trend'):
+                # Fallback calculation if attributes are not set
+                    last_prices = self.data['Close'].tail(20)
+                    self.last_train_price = last_prices.iloc[-1]
+                    self.avg_daily_change = last_prices.diff().mean()
+                    self.trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
                     
-                self.predictions = pd.Series(predictions, index=future_dates)
-                    
-                return self.predictions
-            
-            elif method == 'LSTM':
+                    predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend) for i in range(days)])
                 
-                if self.model is None:
+                elif method == 'LSTM':
                     
-                    self.train_lstm_model()
-                    last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                    predictions_scaled = []
-                    current_sequence = last_sequence
-                    
-                    for _ in range(days):
-                        next_pred_scaled = self.model.predict(current_sequence)
-                        predictions_scaled.append(next_pred_scaled[0, 0])
-                        current_sequence = np.roll(current_sequence, -1, axis=1)
-                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                            
-                        self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                        return self.predictions 
-                
-                elif method == 'RNN':
-                    
-                    if self.model is None:
-                        
-                        self.train_rnn_model()
+                    #if self.model is None:
+                        self.train_lstm_model()
                         last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
                         predictions_scaled = []
                         current_sequence = last_sequence
-                            
                         for _ in range(days):
                             next_pred_scaled = self.model.predict(current_sequence)
                             predictions_scaled.append(next_pred_scaled[0, 0])
                             current_sequence = np.roll(current_sequence, -1, axis=1)
                             current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
                             predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                                
-                            self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                            return self.predictions
                     
-                    elif method == 'ARIMA':
+                    elif method == 'RNN':
                         
-                        if self.model_fit is None:
+                        #if self.model is None:
+                            self.train_rnn_model()
                             
-                            self.train_arima_model()
-                            predictions = self.model_fit.forecast(steps=days)
-                            self.predictions = pd.Series(predictions, index=future_dates)
+                            last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
+                            predictions_scaled = []
+                            current_sequence = last_sequence
                             
-                            return self.predictions
+                            for _ in range(days):
+                                next_pred_scaled = self.model.predict(current_sequence)
+                                predictions_scaled.append(next_pred_scaled[0, 0])
+                                current_sequence = np.roll(current_sequence, -1, axis=1)
+                                current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                                
+                                predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
                         
-                        else:
-                            raise ValueError(f"Unsupported prediction method: {method}")
-        
+                        elif method == 'ARIMA':
+                            #if self.model_fit is None:
+                                self.train_arima_model()
+                                
+                                predictions = self.model_fit.forecast(steps=days)
+                            
+                            
+                            else:
+                                
+                                raise ValueError(f"Unsupported prediction method: {method}")
+                                
+                                
+                                if predictions is None:
+                                    
+                                    last_prices = self.data['Close'].tail(20)
+                                    last_price = last_prices.iloc[-1]
+                                    avg_change = last_prices.diff().mean()
+                                    trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
+                                    predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
+                                    
+                                    predictions = np.maximum(predictions, 0.01)
+                                    
+                                    self.predictions = pd.Series(predictions, index=future_dates)
+                                    
+                                    return self.predictions
         except Exception as e:
-            
-            # Fallback to trend-adjusted exponential smoothing if any method fails
-            
-            st.error(f"Prediction error in {method} method: {str(e)}")
-            last_prices = self.data['Close'].tail(20)
-            last_price = last_prices.iloc[-1]
-            avg_change = last_prices.diff().mean()
-            trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                
-            predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-            self.predictions = pd.Series(predictions, index=future_dates)
-            return self.predictions
-        
-        except Exception as e:
-            
             # Log the error for debugging
-            
             print(f"Prediction error in {method} method: {str(e)}")
             last_price = self.data['Close'].iloc[-1]
             last_prices = self.data['Close'].tail(20)
             avg_change = last_prices.diff().mean()
             trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
+            
             predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
             
             return pd.Series(predictions, index=future_dates)
