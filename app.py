@@ -793,7 +793,7 @@ def main():
                                                                     )
                                                                     st.markdown("</div>", unsafe_allow_html=True)
                                         
-                except Exception as e:
+            except Exception as e:
                                             # Handle and display any errors that occur during processing
                                             st.error(f"Error: {str(e)}")
                                             
