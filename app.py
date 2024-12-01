@@ -681,13 +681,13 @@ def main():
             st.markdown("### Risk Analysis")
             # Input number of shares for risk calculation
             freq_dict = ['Years', 'Months', 'Weeks', 'Days']
+            n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
             col1, col2 = st.columns([2,1])
             with col1:
                 freq = st.number_input("Enter the holding period","")
 
             with col2:
                 freq_mode = st.selectbox("Select frequency mode", freq_dict)
-            n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
 
             if freq_mode == 'Years':
                 holding_period = freq*365
