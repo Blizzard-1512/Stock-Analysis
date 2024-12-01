@@ -147,6 +147,8 @@ class StockPredictor:
 
         return self.var_metrics
 
+    
+
     def train_model(self, validation_size: int = 30) -> dict:
         try:
             if self.data is None:
@@ -351,150 +353,6 @@ def get_stock_metrics(ticker):
         st.error(f"Could not fetch stock metrics: {e}")
         return {}
 
-def _prepare_data_for_ml(self, validation_size: int = 30):
-        """Prepare data for machine learning models"""
-        if self.data is None:
-            raise ValueError("No data available. Call fetch_data() first.")
-
-        # Use Close prices for prediction
-        prices = self.data['Close'].values
-        scaled_prices = self.scaler.fit_transform(prices.reshape(-1, 1))
-
-        def create_sequences(data, seq_length=20):
-            X, y = [], []
-            for i in range(len(data) - seq_length):
-                X.append(data[i:i + seq_length])
-                y.append(data[i + seq_length])
-            return np.array(X), np.array(y)
-
-        X_scaled, y_scaled = create_sequences(scaled_prices)
-        # Split train and validation
-        split = -validation_size
-        X_train, X_val = X_scaled[:split], X_scaled[split:]
-        y_train, y_val = y_scaled[:split], y_scaled[split:]
-
-        return {
-            'X_train': X_train,
-            'X_val': X_val,
-            'y_train': y_train,
-            'y_val': y_val,
-            'prices': prices,
-            'scaled_prices': scaled_prices
-        }
-
-
-def build_model(self, lookback: int = 20):
-        """
-        Build an LSTM model for stock price prediction
-        
-        Parameters:
-        - lookback: Number of previous days used as input
-        """
-        model = tf.keras.Sequential([
-            tf.keras.layers.LSTM(50, activation='relu', input_shape=(X_train.shape[1], 1), return_sequences=True),
-            tf.keras.layers.LSTM(50, activation='relu'),
-            tf.keras.layers.Dense(25, activation='relu'),
-            tf.keras.layers.Dense(1)
-        ])
-        
-        model.compile(optimizer='adam', loss='mse')
-        self.model = model
-        return model
-    
-def train_model_RNN(self, validation_size: int = 30, lookback: int = 20, epochs: int = 20, days: int = 10):
-        """
-        Train the RNN model
-        
-        Parameters:
-        - validation_size: Number of days to use for validation
-        - lookback: Number of previous days to use as input features
-        - epochs: Number of training epochs
-        
-        Returns:
-        - Dictionary of model performance metrics
-        """
-        try:
-            if self.data is None:
-                raise ValueError("No data available. Call fetch_data() first.")
-            
-            # Prepare data
-            X_train, y_train, X_val, y_val = self.prepare_data(
-                validation_size=validation_size, 
-                lookback=lookback
-            )
-            
-            # Build or rebuild model
-            self.build_model(lookback)
-            
-            # Train the model
-            history = self.model.fit(
-                X_train, y_train, 
-                validation_data=(X_val, y_val),
-                epochs=epochs, 
-                batch_size=32, 
-                verbose=0
-            )
-            
-            # Predict on validation data
-            val_predictions = self.model.predict(X_val).flatten()
-            
-            # Inverse transform predictions and actual values
-            val_predictions_orig = self.scaler.inverse_transform(val_predictions.reshape(-1, 1)).flatten()
-            val_actual_orig = self.scaler.inverse_transform(y_val.reshape(-1, 1)).flatten()
-            
-            # Store last training price and metrics
-            self.last_train_price = self.data['Close'].iloc[-validation_size-1]
-            self.metrics = {
-                'MAPE': mean_absolute_percentage_error(val_actual_orig, val_predictions_orig),
-                'RMSE': np.sqrt(mean_squared_error(val_actual_orig, val_predictions_orig)),
-                'Method': 'LSTM Recurrent Neural Network'
-            }
-            
-            return self.metrics
-        
-        except Exception as e:
-            print(f"Training failed: {e}")
-            return {}
-
-def predict(self, days: int = 30):
-        """
-        Predict stock prices for the next 'n' days
-        
-        Parameters:
-        - days: Number of days to predict
-        
-        Returns:
-        - Numpy array of predicted prices
-        """
-        if self.model is None or self.data is None:
-            raise ValueError("Model not trained or no data available.")
-        
-        # Use last 'lookback' days as input
-        last_sequence = self.data['Close'].tail(20).values
-        last_sequence_scaled = self.scaler.transform(last_sequence.reshape(-1, 1)).flatten()
-        
-        predictions_scaled = []
-        current_sequence = last_sequence_scaled
-        
-        for _ in range(days):
-            # Reshape for model input
-            model_input = current_sequence.reshape(1, 20, 1)
-            
-            # Predict next day's price
-            next_pred_scaled = self.model.predict(model_input)[0, 0]
-            predictions_scaled.append(next_pred_scaled)
-            
-            # Update sequence (slide window)
-            current_sequence = np.roll(current_sequence, -1)
-            current_sequence[-1] = next_pred_scaled
-        
-        # Inverse transform predictions
-        predictions = self.scaler.inverse_transform(
-            np.array(predictions_scaled).reshape(-1, 1)
-        ).flatten()
-        
-        return predictions
-
 
 def main():
     # Set the title and introduction for the Streamlit app
@@ -568,10 +426,9 @@ def main():
             if st.button("Predict Stock Prices"):
                 with st.spinner("Training model {selected_model} and generating predictions for next {days} business days..."):
                     # Train the prediction model
-                    predictor.train_model(method = selected_model)
-                    if method == 'RNN'
-                    
-                    predictions = predictor.train_model_rnn(days=days)
+                    predictor.train_model()
+                    # Generate future price predictions
+                    predictions = predictor.predict_future(days=days)
 
                     st.markdown("#### Predicted Prices for Next 5 Business Days")
                     pred_df = pd.DataFrame({
