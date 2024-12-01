@@ -666,24 +666,23 @@ def main():
                         st.error(f"Error predicting with {model} model: {str(e)}")
                         
                         
-                        st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
-                        
-                        st.markdown("""
-                        <div class="prediction-table">
-                        """, unsafe_allow_html=True)
-                        st.dataframe(
-                            all_predictions.style.format({
-                                'Date': lambda x: x,
-                                'Predicted Price': '${:.2f}'
-                            }).set_properties(**{
-                                #'background-color': 'lightskyblue',
-                                #'color': 'black'
-                            }).highlight_max(
-                                subset=['Predicted Price'], color='#2b6929'
-                            ),
-                            use_container_width=True
-                        )
-                        st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
+                st.markdown("""
+                <div class="prediction-table">
+                """, unsafe_allow_html=True)
+                st.dataframe(
+                    all_predictions.style.format({
+                        'Date': lambda x: x,
+                        'Predicted Price': '${:.2f}'
+                    }).set_properties(**{
+                        #'background-color': 'lightskyblue',
+                        #'color': 'black'
+                    }).highlight_max(
+                        subset=['Predicted Price'], color='#2b6929'
+                    ),
+                    use_container_width=True
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
 
             # Risk Analysis section
             st.markdown("### Risk Analysis")
