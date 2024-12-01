@@ -682,7 +682,8 @@ def main():
                             })
                             #model_pred_df['Model'] = selected_model
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
-                        else: 
+                            
+                        elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
                             predictor.train_arima_model()
                             
                             predictions = predictor.predict_future(days=days, model=selected_model)
