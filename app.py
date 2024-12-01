@@ -686,7 +686,7 @@ def main():
                         elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
                             predictor.train_arima_model()
                             
-                            predictions = predictor.predict_future(days=days, model=selected_model)
+                            predictions = predictor.predict_future(days=days, model='ARIMA')
                             
                             model_pred_df = pd.DataFrame({
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
