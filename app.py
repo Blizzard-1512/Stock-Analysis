@@ -158,7 +158,7 @@ class StockPredictor:
             'avg_daily_change': self.avg_daily_change,
             'trend': self.trend
         }
-        return metrics
+        return self.models
 
     def train_lstm_model(self):
         """
@@ -679,7 +679,7 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                             })
-                            model_pred_df['Model'] = model
+                            #model_pred_df['Model'] = model
                             
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                     
