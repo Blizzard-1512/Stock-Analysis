@@ -290,8 +290,8 @@ class StockPredictor:
             # Fit ARIMA model
             # Note: In a real implementation, you'd use grid search or auto_arima 
             # to find the best parameters
-            model = ARIMA(prices, order=(5,1,0))
-            model_fit = model.fit()
+            arima_model = ARIMA(prices, order=(5,1,0))
+            model_fit = arima_model.fit()
 
             # Make in-sample predictions
             predictions = model_fit.predict()
