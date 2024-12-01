@@ -333,7 +333,8 @@ class StockPredictor:
                     
                     self.train_lstm_model()
                     
-                        predictions = val_pred 
+                    predictions = val_pred 
+                    
                     if predictions is not None:  # Check if predictions are generated
                         self.predictions = pd.Series(predictions, index=future_dates) 
                         
