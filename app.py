@@ -151,18 +151,28 @@ class StockPredictor:
         """
         Train Trend-Adjusted Exponential Smoothing (existing method)
         """
-        metrics = self.train_model(validation_size)
-        self.models['TAES'] = {
-            'metrics': metrics,
-            'last_train_price': self.last_train_price,
-            'avg_daily_change': self.avg_daily_change,
-            'trend': self.trend
+        from scipy import stats
+        prices = self.data['Close']
+        self.last_train_price = prices.iloc[-1]
+        x = np.arrange(len(prices))
+        slope, _, _, _, _= stats.linregress(x, prices)
+
+        self.avg_daily_change = np.mean(prices.pct_change().dropna())
+        self.trend = slope
+                                        
+
+        metrics = {
+            'Last Price': self.last_train_price,
+            'Avg Daily Change': self.avg_daily_change,
+            'Trend': self.trend
         }
-        return {
-        'Last Train Price': last_train_price,
-        'Average Daily Change': avg_daily_change,
-        'Trend': trend
-    }
+
+        self.models['TAES'] = {
+            'Last Price': self.last_train_price,
+            'Avg Daily Change': self.avg_daily_change,
+            'Trend': self.trend
+            
+        return metrics
 
     def train_lstm_model(self):
         """
@@ -290,11 +300,11 @@ class StockPredictor:
             # Fit ARIMA model
             # Note: In a real implementation, you'd use grid search or auto_arima 
             # to find the best parameters
-            arima_model = ARIMA(prices, order=(5,1,0))
-            model_fit = arima_model.fit()
+            model = ARIMA(prices, order=(5,1,0))
+            model_fit = model.fit()
 
             # Make in-sample predictions
-            predictions = model_fit.predict()
+            predictions = model_fit.predict(start=len(prices), end=len(prices))
 
             # Calculate metrics
             mape = mean_absolute_percentage_error(prices[len(predictions):], predictions)
@@ -650,16 +660,16 @@ def main():
                         if selected_model == 'TAES':
                             predictor.train_taes_model()
                             predictions = predictor.predict_future(days=days, model=selected_model)
-                            model_pred_df = pd.DataFrame({
+                            all_predictions = pd.DataFrame({
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                                 })
-                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                            #all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
                         elif selected_model == 'LSTM':
                             predictor.train_lstm_model()
                             predictions = predictor.predict_future(days=days, model=selected_model)
-                            model_pred_df = pd.DataFrame({
+                            all_predictions = pd.DataFrame({
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                                 })
@@ -679,13 +689,13 @@ def main():
                             
                             predictions = predictor.predict_future(days=days, model=selected_model)
                             
-                            model_pred_df = pd.DataFrame({
+                            all_predictions = pd.DataFrame({
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                             })
                             #model_pred_df['Model'] = model
                             
-                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                            #all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                     
                     except Exception as e:
                         st.error(f"Error predicting with {model} model: {str(e)}")
