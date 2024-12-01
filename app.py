@@ -641,9 +641,9 @@ def main():
                     metrics_cols = st.columns(4)
                     metric_keys = list(stock_metrics.keys())
                     for i, key in enumerate(metric_keys):
-                    with metrics_cols[i % 4]:
-                    st.markdown(f"""
-                    <div class="metric-card">
+                        with metrics_cols[i % 4]:
+                        st.markdown(f"""
+                        <div class="metric-card">
                         <h3>{key}</h3>
                         <div class="value">{stock_metrics[key]}</div>
                         </div>
