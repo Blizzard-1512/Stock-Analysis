@@ -637,23 +637,22 @@ def main():
             days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
             
             if st.button("Predict Stock Prices"):
-        with st.spinner(f"Training models and generating predictions for next {days} business days..."):
-            # Initialize predictions DataFrame
-            all_predictions = pd.DataFrame()
-
-            # Train and predict for each model
-            for model in prediction_models:
-                try:
-                    # Train the model based on the type
-                    if model == 'TAES':
-                        predictor.train_taes_model()
-                    elif model == 'LSTM':
-                        predictor.train_lstm_model()
-                    elif model == 'RNN':
-                        predictor.train_rnn_model()
-                    elif model == 'ARIMA':
-                        predictor.train_arima_model()
-
+                with st.spinner(f"Training models and generating predictions for next {days} business days..."):
+                    # Initialize predictions DataFrame
+                    all_predictions = pd.DataFrame()
+                    # Train and predict for each model
+                for model in prediction_models:
+                    try:
+                        # Train the model based on the type
+                        if model == 'TAES':
+                            predictor.train_taes_model()
+                        elif model == 'LSTM':
+                            predictor.train_lstm_model()
+                        elif model == 'RNN':
+                            predictor.train_rnn_model()
+                        elif model == 'ARIMA':
+                            predictor.train_arima_model()
+                            
                     # Generate predictions
                     predictions = predictor.predict_future(days=days, model=selected_model)
                     
