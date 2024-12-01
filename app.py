@@ -607,196 +607,214 @@ def main():
     """)
 
     # Create input columns for stock ticker and years of historical data
-    # Add a dropdown menu at the beginning of the app
-    app_mode = st.selectbox("Select Mode", ["Single Stock", "Portfolio"])
-    if app_mode == "Single Stock":
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            # Input for stock ticker, converting to uppercase and removing whitespace
-            ticker = st.text_input("Enter Stock Ticker Symbol (e.g., AAPL)", "").strip().upper()
-            
-        with col2:
-            years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
-            
-        if ticker:
-            try:
-                predictor = StockPredictor(ticker, years)
-                    # Show a loading spinner while fetching data
-                with st.spinner(f'Fetching data for {ticker}...'):
-                    # Fetch historical stock data
-                    predictor.fetch_data()
-                    stock_metrics = get_stock_metrics(ticker)
-                    current_price = predictor.data['Close'].iloc[-1]
-                    daily_change = (predictor.data['Close'].iloc[-1] - predictor.data['Close'].iloc[-2]) / \
-                    predictor.data['Close'].iloc[-2] * 100
-                    
-                    st.markdown("### Current Stock Information")
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Current Price", f"${current_price:.2f}")
-                    col2.metric("Daily Change", f"{daily_change:.2f}%", f"{daily_change:.2f}%")
-                    col3.metric("Trading Volume", f"{predictor.data['Volume'].iloc[-1]:,.0f}")
-                    
-                    st.markdown("### Company Metrics")
-                    metrics_cols = st.columns(4)
-                    metric_keys = list(stock_metrics.keys())
-                    for i, key in enumerate(metric_keys):
-                        with metrics_cols[i % 4]:
-                        st.markdown(f"""
-                        <div class="metric-card">
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        # Input for stock ticker, converting to uppercase and removing whitespace
+        ticker = st.text_input("Enter Stock Ticker Symbol (e.g., AAPL)", "").strip().upper()
+    with col2:
+        # Number input for years of historical data with validation
+        years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
+
+    # Only proceed if a valid ticker is entered
+    if ticker:
+        try:
+            # Initialize the StockPredictor with the chosen ticker and years
+            predictor = StockPredictor(ticker, years)
+
+            # Show a loading spinner while fetching data
+            with st.spinner(f'Fetching data for {ticker}...'):
+                # Fetch historical stock data
+                predictor.fetch_data()
+
+            # Get stock metrics from Yahoo Finance
+            stock_metrics = get_stock_metrics(ticker)
+
+            # Calculate current price and daily change
+            current_price = predictor.data['Close'].iloc[-1]
+            daily_change = (predictor.data['Close'].iloc[-1] - predictor.data['Close'].iloc[-2]) / \
+                           predictor.data['Close'].iloc[-2] * 100
+
+            # Display current stock information in metrics
+            st.markdown("### Current Stock Information")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Current Price", f"${current_price:.2f}")
+            col2.metric("Daily Change", f"{daily_change:.2f}%", f"{daily_change:.2f}%")
+            col3.metric("Trading Volume", f"{predictor.data['Volume'].iloc[-1]:,.0f}")
+
+            # Display company metrics in styled cards
+            st.markdown("### Company Metrics")
+            metrics_cols = st.columns(4)
+            metric_keys = list(stock_metrics.keys())
+            for i, key in enumerate(metric_keys):
+                with metrics_cols[i % 4]:
+                    st.markdown(f"""
+                    <div class="metric-card">
                         <h3>{key}</h3>
                         <div class="value">{stock_metrics[key]}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # Generate and display technical analysis charts
+            st.markdown("### Technical Analysis Charts")
+            figs = predictor.create_plots()
+            for fig in figs:
+                st.plotly_chart(fig, use_container_width=True)
+
+            # Prediction section
+            st.markdown("### Price Predictions")
+            
+            prediction_models = ['Term Adjusted Exponential Smoothening', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
+            selected_model = st.selectbox("Select Prediction Model", prediction_models)
+            days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
+            
+            if st.button("Predict Stock Prices"):
+                with st.spinner(f"Training {selected_model} model and generating predictions for next {days} business days..."):
+                    # Initialize predictions DataFrame
+                    all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
+                    
+                    try:
+                        if selected_model == 'Term Adjusted Exponential Smoothening':
+                            predictor.train_taes_model()
+                            predictions = predictor.predict_future(days=days, model='TAES')
+                            model_pred_df = pd.DataFrame({
+                                'Date': predictions.index.strftime('%Y-%m-%d'),
+                                'Predicted Price': predictions.values
+                                })
+                            #model_pred_df['Model'] = selected_model
+                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                
+                        elif selected_model == 'Long Short-Term Memory':
+                            predictor.train_lstm_model()
+                            predictions = predictor.predict_future(days=days, model=selected_model)
+                            model_pred_df = pd.DataFrame({
+                                'Date': predictions.index.strftime('%Y-%m-%d'),
+                                'Predicted Price': predictions.values
+                                })
+                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                
+                        elif selected_model == 'Recurrent Neural Networks':
+                            predictor.train_rnn_model()
+                            predictions = predictor.predict_future(days=days, model=selected_model)
+                            model_pred_df = pd.DataFrame({
+                                'Date': predictions.index.strftime('%Y-%m-%d'),
+                                'Predicted Price': predictions.values
+                            })
+                            #model_pred_df['Model'] = selected_model
+                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                             
-                    st.markdown("### Technical Analysis Charts")
-                        figs = predictor.create_plots()
-                        for fig in figs:
-                            st.plotly_chart(fig, use_container_width=True)
-                                
-                                
-                    st.markdown("### Price Predictions")
-                                
-                    prediction_models = ['Term Adjusted Exponential Smoothening', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
-                    selected_model = st.selectbox("Select Prediction Model", prediction_models)
-                    days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
-                                
-                    if st.button("Predict Stock Prices"):
-                        with st.spinner(f"Training {selected_model} model and generating predictions for next {days} business days..."):
-                            # Initialize predictions DataFrame
-                            all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
-                                        
-                            try:
-                                if selected_model == 'Term Adjusted Exponential Smoothening':
-                                    predictor.train_taes_model()
-                                    predictions = predictor.predict_future(days=days, model='TAES')
-                                    model_pred_df = pd.DataFrame({
-                                    'Date': predictions.index.strftime('%Y-%m-%d'),
-                                    'Predicted Price': predictions.values
-                                    })
-                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
-                                            
-                                elif selected_model == 'Long Short-Term Memory':
-                                                
-                                    predictor.train_lstm_model()
-                                    predictions = predictor.predict_future(days=days, model='LSTM')
-                                    model_pred_df = pd.DataFrame({
-                                    'Date': predictions.index.strftime('%Y-%m-%d'),
-                                    'Predicted Price': predictions.values
-                                    })
-                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
-                                            
-                                elif selected_model == 'Recurrent Neural Networks':
-                                                
-                                    predictor.train_rnn_model()
-                                    predictions = predictor.predict_future(days=days, model='RNN')
-                                    model_pred_df = pd.DataFrame({
-                                        'Date': predictions.index.strftime('%Y-%m-%d'),
-                                            'Predicted Price': predictions.values
-                                    })
-                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
-                                            
-                                elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
-                                    predictor.train_arima_model()
-                                    predictions = predictor.predict_future(days=days, model='ARIMA')
-                                                
-                                    model_pred_df = pd.DataFrame({
-                                        'Date': predictions.index.strftime('%Y-%m-%d'),
-                                            'Predicted Price': predictions.values
-                                    })
-                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
-                                        
-                            except Exception as e:
-                                st.error(f"Error predicting with {selected_model} model: {str(e)}")
-                                            
-                            st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
-                            st.markdown("""
-                                <div class="prediction-table">
-                                    """, unsafe_allow_html=True)
-                            st.dataframe(
-                                all_predictions.style.format({
-                                    'Date': lambda x: x,
-                                    'Predicted Price': '${:.2f}'
-                                }).set_properties(**{
-                                        #'background-color': 'lightskyblue',
-                                        #'color': 'black'
-                                }).highlight_max(
-                                    subset=['Predicted Price'], color='#2b6929'
-                                    ),
-                                    use_container_width=True
-                                        )
-                            st.markdown("</div>", unsafe_allow_html=True)
-                                            
-                                            
-                                            st.markdown("### Risk Analysis")
-                                            freq_dict = ['Years', 'Months', 'Weeks', 'Days']
-                                            n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
-                                            col1, col2 = st.columns([2, 1])
-                                            
-                                            with col1:
-                                                freq = st.number_input("Enter the holding period", min_value=1.0, value=1.0, max_value=500.0, step=1.0)
-                                                
-                                            with col2:
-                                                freq_mode = st.selectbox("Select frequency mode", freq_dict)
-                                                
-                                                
-                                                if freq_mode == 'Years':
-                                                    holding_period = freq * 365
-                                                elif freq_mode == 'Months':
-                                                    holding_period = freq * 30
-                                                elif freq_mode == 'Weeks':
-                                                    holding_period = freq * 7
-                                                
-                                                else:
-                                                    holding_period = freq
-                                                    
-                                                    if st.button("Calculate Risk Metrics"):
-                                                        with st.spinner("Calculating Value at Risk..."):
-                                                            # Calculate VaR metrics
-                                                            var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
-                                                            
-                                                            var_data = []
-                                                            methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
-                                                            
-                                                            for method in methods:
-                                                                
-                                                                var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
-                                                                if method != 'Benchmark':
-                                                                    required_capital = var_metrics['Required_Capital'].get(method, 0)
-                                                                
-                                                                else:
-                                                                    required_capital = 0
-                                                                    
-                                                                    var_data.append({
-                                                                        'Method': method,
-                                                                        'VaR': var_value,
-                                                                        'Required Capital': required_capital
-                                                                    })
-                                                                    
-                                                                    var_df = pd.DataFrame(var_data)
-                                                                    
-                                                                    st.markdown("#### Value at Risk (VaR) Analysis")
-                                                                    st.markdown("""
-                                                                    <div class="prediction-table">
-                                                                    """, unsafe_allow_html=True)
-                                                                    st.dataframe(
-                                                                        var_df.style.format({
-                                                                            'VaR': '${:,.2f}',
-                                                                            'Required Capital': '${:,.2f}'
-                                                                        }).set_properties(**{
-                                                                            #'background-color': 'lightyellow',
-                                                                            #'color': 'black'
-                                                                        }).highlight_min(
-                                                                            subset=['VaR'], color='#2b6929'
-                                                                        ),
-                                                                        use_container_width=True
-                                                                    )
-                                                                    st.markdown("</div>", unsafe_allow_html=True)
-                                        
-            except Exception as e:
-                                            # Handle and display any errors that occur during processing
-                                            st.error(f"Error: {str(e)}")
-                                            
+                        elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
+                            predictor.train_arima_model()
+                            
+                            predictions = predictor.predict_future(days=days, model='ARIMA')
+                            
+                            model_pred_df = pd.DataFrame({
+                                'Date': predictions.index.strftime('%Y-%m-%d'),
+                                'Predicted Price': predictions.values
+                            })
+                            #model_pred_df['Model'] = selected_model
+                            
+                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                    
+                    except Exception as e:
+                        st.error(f"Error predicting with {selected_model} model: {str(e)}")
+                        
+                        
+                st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
+                st.markdown("""
+                <div class="prediction-table">
+                """, unsafe_allow_html=True)
+                st.dataframe(
+                    all_predictions.style.format({
+                        'Date': lambda x: x,
+                        'Predicted Price': '${:.2f}'
+                    }).set_properties(**{
+                        #'background-color': 'lightskyblue',
+                        #'color': 'black'
+                    }).highlight_max(
+                        subset=['Predicted Price'], color='#2b6929'
+                    ),
+                    use_container_width=True
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            # Risk Analysis section
+            st.markdown("### Risk Analysis")
+            # Input number of shares for risk calculation
+            freq_dict = ['Years', 'Months', 'Weeks', 'Days']
+            n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                freq = st.number_input("Enter the holding period", min_value=1.0, value=1.0, max_value=500.0, step=1.0)
+
+            with col2:
+                freq_mode = st.selectbox("Select frequency mode", freq_dict)
+
+            if freq_mode == 'Years':
+                holding_period = freq * 365
+
+            elif freq_mode == 'Months':
+                holding_period = freq * 30
+
+            elif freq_mode == 'Weeks':
+                holding_period = freq * 7
+
+            else:
+                holding_period = freq
+
+            
+            if st.button("Calculate Risk Metrics"):
+
+
+                with st.spinner("Calculating Value at Risk..."):
+                    # Calculate VaR metrics
+                    var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
+
+                    # Prepare VaR data for display
+                    var_data = []
+                    methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
+
+                    for method in methods:
+                        # Safely handle VaR value retrieval
+                        var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
+
+                        # Safely handle required capital
+                        if method != 'Benchmark':
+                            required_capital = var_metrics['Required_Capital'].get(method, 0)
+                        else:
+                            required_capital = 0
+
+                        var_data.append({
+                            'Method': method,
+                            'VaR': var_value,
+                            'Required Capital': required_capital
+                        })
+
+                    var_df = pd.DataFrame(var_data)
+
+                    # Display VaR metrics in a styled table
+                    st.markdown("#### Value at Risk (VaR) Analysis")
+                    st.markdown("""
+                            <div class="prediction-table">
+                            """, unsafe_allow_html=True)
+                    st.dataframe(
+                        var_df.style.format({
+                            'VaR': '${:,.2f}',
+                            'Required Capital': '${:,.2f}'
+                        }).set_properties(**{
+                            #'background-color': 'lightyellow',
+                            #'color': 'black'
+                        }).highlight_min(
+                            subset=['VaR'], color='#2b6929'
+                        ),
+                        use_container_width=True
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+        except Exception as e:
+            # Handle and display any errors that occur during processing
+            st.error(f"Error: {str(e)}")
+
+
 # Main execution block
 if __name__ == "__main__":
     main()
