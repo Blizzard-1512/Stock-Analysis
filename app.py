@@ -362,10 +362,9 @@ class StockPredictor:
                             current_sequence = np.roll(current_sequence, -1, axis=1)
                             current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
                             predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                                
-                            self.predictions = pd.Series(predictions, index=future_dates)
+                            predictions = pd.Series(predictions, index=future_dates)
                             
-                            return self.predictions
+                            return predictions
                     
                     elif method == 'ARIMA':
                         
