@@ -281,7 +281,9 @@ class StockPredictor:
             from statsmodels.tsa.arima.model import ARIMA
             
             # Prepare data (using closing prices)
-            prices = self.data['Close'].values
+            prices = self.data['Close'].dropna().values
+            if len(prices) == 0:
+                raise ValueError("Insufficient data available for ARIMA model training.")
             
             # Fit ARIMA model
             # Note: In a real implementation, you'd use grid search or auto_arima 
@@ -290,6 +292,8 @@ class StockPredictor:
 
             # Make in-sample predictions
             predictions = model.predict()
+            if len(predictions) == 0:
+                raise ValueError("ARIMA predictions failed due to insufficient data.")
 
             # Calculate metrics
             mape = mean_absolute_percentage_error(prices[len(predictions):], predictions)
@@ -402,6 +406,8 @@ class StockPredictor:
         elif model == 'ARIMA':
             # ARIMA prediction
             arima_model = self.models[model]['model']
+            if days > len(self.data):
+                raise ValueError("Prediction period exceeds available data length.")
             predictions = arima_model.forecast(steps=days)
 
         # Convert to Series
