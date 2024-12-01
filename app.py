@@ -641,16 +641,16 @@ def main():
                     # Initialize predictions DataFrame
                     all_predictions = pd.DataFrame()
                     # Train and predict for each model
-                for model in prediction_models:
+                for model in selected_model:
                     try:
                         # Train the model based on the type
-                        if model == 'TAES':
+                        if selected_model == 'TAES':
                             predictor.train_taes_model()
-                        elif model == 'LSTM':
+                        elif selected_model == 'LSTM':
                             predictor.train_lstm_model()
-                        elif model == 'RNN':
+                        elif selected_model == 'RNN':
                             predictor.train_rnn_model()
-                        elif model == 'ARIMA':
+                        elif selected_model == 'ARIMA':
                             predictor.train_arima_model()
                             
                             predictions = predictor.predict_future(days=days, model=selected_model)
