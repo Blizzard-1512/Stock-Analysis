@@ -360,7 +360,7 @@ class StockPredictor:
 
         return self.var_metrics
 
-    def predict_future(self, days: int = 5, model: str == 'TAES'):
+    def predict_future(self, days: int = 5, model: str = 'TAES'):
         """
         Predict future stock prices using specified model
         """
@@ -375,7 +375,7 @@ class StockPredictor:
         # Prediction logic for different models
         if model == 'TAES':
             # Existing trend-adjusted method
-            taes_model = self.models['TAES']
+            taes_model = self.models[model]['TAES']
             predictions = np.array([taes_model['last_train_price'] + (i + 1) * 
                                     (taes_model['avg_daily_change'] + taes_model['trend']) 
                                     for i in range(days)])
@@ -406,7 +406,7 @@ class StockPredictor:
         
         elif model == 'ARIMA':
             # ARIMA prediction
-            arima_model = self.models['ARIMA']['model']
+            arima_model = self.models[model]['ARIMA']
             predictions = arima_model.forecast(steps=days)
 
         # Convert to Series
