@@ -348,9 +348,10 @@ class StockPredictor:
                         if predictions is not None:  # Check if predictions are generated
                             self.predictions = pd.Series(predictions, index=future_dates) 
                             return self.predictions 
-            else:
-                raise ValueError("Predictions returned None for LSTM model.")
-            elif method == 'RNN':
+                        else:
+                            raise ValueError("Predictions returned None for LSTM model.")
+                        
+                elif method == 'RNN':
                     
                     if self.model is None:
                         
