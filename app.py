@@ -286,7 +286,7 @@ class StockPredictor:
             # Fit ARIMA model
             # Note: In a real implementation, you'd use grid search or auto_arima 
             # to find the best parameters
-            model_fit = ARIMA(prices, order=(5,1,0)).fit()
+            model = ARIMA(prices, order=(5,1,0)).fit()
 
             # Make in-sample predictions
             predictions = model_fit.predict()
@@ -297,7 +297,7 @@ class StockPredictor:
 
             # Store model and metrics
             self.models['ARIMA'] = {
-                'model': model_fit,
+                'model': model,
                 'metrics': {
                     'MAPE': mape,
                     'RMSE': rmse,
@@ -401,7 +401,7 @@ class StockPredictor:
         
         elif model == 'ARIMA':
             # ARIMA prediction
-            arima_model = self.models['ARIMA']['model']
+            arima_model = self.models[model]['model']
             predictions = arima_model.forecast(steps=days)
 
         # Convert to Series
