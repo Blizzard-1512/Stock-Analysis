@@ -375,7 +375,7 @@ class StockPredictor:
         # Prediction logic for different models
         if model == 'TAES':
             # Existing trend-adjusted method
-            taes_model = self.models[model]['TAES']
+            taes_model = self.models['TAES']
             predictions = np.array([taes_model['last_train_price'] + (i + 1) * 
                                     (taes_model['avg_daily_change'] + taes_model['trend']) 
                                     for i in range(days)])
@@ -406,7 +406,7 @@ class StockPredictor:
         
         elif model == 'ARIMA':
             # ARIMA prediction
-            arima_model = self.models[model]['ARIMA']
+            arima_model = self.models['ARIMA'][model]
             predictions = arima_model.forecast(steps=days)
 
         # Convert to Series
