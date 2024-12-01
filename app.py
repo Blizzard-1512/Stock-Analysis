@@ -495,14 +495,14 @@ class StockPredictor:
                 line=dict(color='gray', width=1)
             )
         )
-        fig_bb.add_trace(
-            go.Scatter(
-                x=self.data.index,
-                y=self.data['MA20'],
-                name='MA20',
-                line=dict(color='blue', width=1)
-            )
-        )
+        #fig_bb.add_trace(
+            #go.Scatter(
+                #x=self.data.index,
+                #y=self.data['MA20'],
+                #name='MA20',
+                #line=dict(color='blue', width=1)
+            #)
+        #)
         fig_bb.add_trace(
             go.Scatter(
                 x=self.data.index,
