@@ -645,38 +645,31 @@ def main():
                     try:
                         # Train the selected model
                         predictor.train_model(method=selected_model)
-
-                        # Generate future price predictions using the selected model
                         predictions = predictor.predict_future(days=days, method=selected_model)
-
+                        
                         st.markdown(f"#### Predicted Prices for Next {days} Business Days using {selected_model}")
                         pred_df = pd.DataFrame({
                             'Date': predictions.index.strftime('%Y-%m-%d'),
                             'Predicted Price': predictions.values
                         })
-
-                        # Display predictions in a styled table
                         st.markdown("""
-                            <div class="prediction-table">
-                            """, unsafe_allow_html=True)
+                        <div class="prediction-table">
+                        """, unsafe_allow_html=True)
                         st.dataframe(
                             pred_df.style.format({
                                 'Date': lambda x: x,
                                 'Predicted Price': '${:.2f}'
-                            }).set_properties(**{
-                                # 'background-color': 'lightskyblue',
-                                # 'color': 'black'
                             }).highlight_max(
                                 subset=['Predicted Price'], color='#2b6929'
                             ),
                             use_container_width=True
                         )
                         st.markdown("</div>", unsafe_allow_html=True)
-
                     except Exception as e:
                         # Handle and display any errors that occur during prediction
                         st.error(f"Prediction Error: {str(e)}")
-
+                        
+            
             # Risk Analysis section
             st.markdown("### Risk Analysis")
             # Input number of shares for risk calculation
