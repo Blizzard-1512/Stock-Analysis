@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from statsmodels.tsa.arima.model import ARIMA
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, RNN, Dense, LSTMCell, Input
+from tensorflow.keras.layers import LSTM, RNN, Dense, LSTMCell
 from sklearn.preprocessing import MinMaxScaler
 
 # Set page config
@@ -145,10 +145,8 @@ class StockPredictor:
         data = self._prepare_data_for_ml(validation_size)
 
         # Build LSTM Model
-        input_shape = (data['X_train'].shape[1], 1)
         model = Sequential([
-            Input(shape=input_shape),
-            LSTM(50, activation='relu', return_sequences=True),
+            LSTM(50, activation='relu', input_shape=(data['X_train'].shape[1], 1), return_sequences=True),
             LSTM(50, activation='relu'),
             Dense(1)
         ])
