@@ -640,7 +640,6 @@ def main():
             if st.button("Predict Stock Prices"):
                 with st.spinner(f"Training models and generating predictions for next {days} business days..."):
                     # Initialize predictions DataFrame
-                    all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                     
                     try:
                         if selected_model == 'TAES':
@@ -667,6 +666,7 @@ def main():
                         
                         
                 st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
+                all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                 st.markdown("""
                 <div class="prediction-table">
                 """, unsafe_allow_html=True)
