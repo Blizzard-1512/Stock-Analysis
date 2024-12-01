@@ -400,8 +400,8 @@ def build_model(self, lookback: int = 20):
         model.compile(optimizer='adam', loss='mse')
         self.model = model
         return model
-
-    def train_model_RNN(self, validation_size: int = 30, lookback: int = 20, epochs: int = 20, days: int = 10):
+    
+def train_model_RNN(self, validation_size: int = 30, lookback: int = 20, epochs: int = 20, days: int = 10):
         """
         Train the RNN model
         
@@ -456,7 +456,7 @@ def build_model(self, lookback: int = 20):
             print(f"Training failed: {e}")
             return {}
 
-    def predict(self, days: int = 30):
+def predict(self, days: int = 30):
         """
         Predict stock prices for the next 'n' days
         
