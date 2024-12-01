@@ -649,6 +649,13 @@ def main():
                             predictor.train_lstm_model()
                         elif selected_model == 'RNN':
                             predictor.train_rnn_model()
+                            predictions = predictor.predict_future(days=days, model=selected_model)
+                            model_pred_df = pd.DataFrame({
+                                'Date': predictions.index.strftime('%Y-%m-%d'),
+                                'Predicted Price': predictions.values
+                            })
+                            #model_pred_df['Model'] = selected_model
+                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                         else: 
                             predictor.train_arima_model()
                             
