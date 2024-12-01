@@ -649,6 +649,7 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                                 })
+                            model_pred_df['Model'] = selected_model
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
                         elif selected_model == 'Long Short-Term Memory':
@@ -678,7 +679,7 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                             })
-                            #model_pred_df['Model'] = model
+                            model_pred_df['Model'] = selected_model
                             
                             all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                     
