@@ -72,7 +72,7 @@ class StockPredictor:
         self.data = None
         self.model = None
         self.model_fit = None
-        #self.predictions = None
+        self.predictions = {}
         self.metrics = {}
         self.var_metrics = {}
 
