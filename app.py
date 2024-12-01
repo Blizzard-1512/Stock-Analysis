@@ -417,7 +417,7 @@ class StockPredictor:
         
         elif model == 'ARIMA':
             # ARIMA prediction
-            arima_model = self.models['ARIMA'][model]
+            arima_model = self.models['ARIMA']['model']
             predictions = arima_model.forecast(steps=days)
 
         # Convert to Series
