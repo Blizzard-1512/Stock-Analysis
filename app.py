@@ -619,9 +619,9 @@ def main():
         with col2:
             years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
             
-            if ticker:
-                try:
-                    predictor = StockPredictor(ticker, years)
+        if ticker:
+            try:
+                predictor = StockPredictor(ticker, years)
                     # Show a loading spinner while fetching data
                     with st.spinner(f'Fetching data for {ticker}...'):
                         # Fetch historical stock data
