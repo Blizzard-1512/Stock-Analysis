@@ -158,7 +158,11 @@ class StockPredictor:
             'avg_daily_change': self.avg_daily_change,
             'trend': self.trend
         }
-        return self.models
+        return {
+        'Last Train Price': last_train_price,
+        'Average Daily Change': avg_daily_change,
+        'Trend': trend
+    }
 
     def train_lstm_model(self):
         """
