@@ -296,8 +296,11 @@ class StockPredictor:
                 raise ValueError("ARIMA predictions failed due to insufficient data.")
 
             # Calculate metrics
-            mape = mean_absolute_percentage_error(prices[len(predictions):], predictions)
-            rmse = np.sqrt(mean_squared_error(prices[len(predictions):], predictions))
+            aligned_prices = prices[-len(predictions):]  # Take only the last 'len(predictions)' price 
+            if len(aligned_prices) != len(predictions):
+                raise ValueError("Inconsistent lengths for metrics calculation.")
+            mape = mean_absolute_percentage_error(aligned_prices, predictions)
+            rmse = np.sqrt(mean_squared_error(prices[aligned_prices], predictions))
 
             # Store model and metrics
             self.models['ARIMA'] = {
