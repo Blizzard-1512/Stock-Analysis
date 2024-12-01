@@ -299,7 +299,7 @@ class StockPredictor:
             predictions = np.array(predictions)
 
             # Calculate metrics
-            aligned_prices = prices[-len(predictions):]  # Take only the last 'len(predictions)' price 
+            aligned_prices = prices[-int(len(predictions)):]  # Take only the last 'len(predictions)' price 
             if len(aligned_prices) != len(predictions):
                 raise ValueError("Inconsistent lengths for metrics calculation.")
             mape = mean_absolute_percentage_error(aligned_prices, predictions)
