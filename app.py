@@ -705,7 +705,7 @@ def main():
                 with st.spinner("Calculating Value at Risk..."):
                     try:
                         # Calculate VaR metrics
-                        var_metrics = predictor.calculate_var(n_shares=n_shares)
+                        var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
 
                         # Prepare VaR data for display
                         var_data = []
