@@ -756,7 +756,6 @@ def main():
                                  except Exception as e:
                                      # Handle and display any errors that occur during initial processing
                                      st.error(f"Error: {str(e)}")
-                                     
-# Main execution block
-if __name__ == "__main__":
+                                     # Main execution block
+    if __name__ == "__main__":
     main()
