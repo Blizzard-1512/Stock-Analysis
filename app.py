@@ -640,7 +640,7 @@ def main():
             if st.button("Predict Stock Prices"):
                 with st.spinner(f"Training models and generating predictions for next {days} business days..."):
                     # Initialize predictions DataFrame
-                    all_predictions = pd.DataFrame()
+                    all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                     
                     try:
                         if selected_model == 'TAES':
