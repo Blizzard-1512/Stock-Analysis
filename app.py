@@ -641,91 +641,91 @@ def main():
                     metrics_cols = st.columns(4)
                     metric_keys = list(stock_metrics.keys())
                     for i, key in enumerate(metric_keys):
-                        with metrics_cols[i % 4]:
-                            st.markdown(f"""
-                            <div class="metric-card">
-                            <h3>{key}</h3>
-                            <div class="value">{stock_metrics[key]}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                    with metrics_cols[i % 4]:
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <h3>{key}</h3>
+                        <div class="value">{stock_metrics[key]}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
                             
-                            st.markdown("### Technical Analysis Charts")
-                            figs = predictor.create_plots()
-                            for fig in figs:
-                                st.plotly_chart(fig, use_container_width=True)
+                    st.markdown("### Technical Analysis Charts")
+                        figs = predictor.create_plots()
+                        for fig in figs:
+                            st.plotly_chart(fig, use_container_width=True)
                                 
                                 
-                                st.markdown("### Price Predictions")
+                    st.markdown("### Price Predictions")
                                 
-                                prediction_models = ['Term Adjusted Exponential Smoothening', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
-                                selected_model = st.selectbox("Select Prediction Model", prediction_models)
-                                days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
+                    prediction_models = ['Term Adjusted Exponential Smoothening', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
+                    selected_model = st.selectbox("Select Prediction Model", prediction_models)
+                    days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
                                 
-                                if st.button("Predict Stock Prices"):
-                                    with st.spinner(f"Training {selected_model} model and generating predictions for next {days} business days..."):
-                                        # Initialize predictions DataFrame
-                                        all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
+                    if st.button("Predict Stock Prices"):
+                        with st.spinner(f"Training {selected_model} model and generating predictions for next {days} business days..."):
+                            # Initialize predictions DataFrame
+                            all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                                         
-                                        try:
-                                            if selected_model == 'Term Adjusted Exponential Smoothening':
-                                                predictor.train_taes_model()
-                                                predictions = predictor.predict_future(days=days, model='TAES')
-                                                model_pred_df = pd.DataFrame({
-                                                    'Date': predictions.index.strftime('%Y-%m-%d'),
-                                                    'Predicted Price': predictions.values
-                                                })
-                                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                            try:
+                                if selected_model == 'Term Adjusted Exponential Smoothening':
+                                    predictor.train_taes_model()
+                                    predictions = predictor.predict_future(days=days, model='TAES')
+                                    model_pred_df = pd.DataFrame({
+                                    'Date': predictions.index.strftime('%Y-%m-%d'),
+                                    'Predicted Price': predictions.values
+                                    })
+                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                             
-                                            elif selected_model == 'Long Short-Term Memory':
+                                elif selected_model == 'Long Short-Term Memory':
                                                 
-                                                predictor.train_lstm_model()
-                                                predictions = predictor.predict_future(days=days, model='LSTM')
-                                                model_pred_df = pd.DataFrame({
-                                                    'Date': predictions.index.strftime('%Y-%m-%d'),
-                                                    'Predicted Price': predictions.values
-                                                })
-                                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                    predictor.train_lstm_model()
+                                    predictions = predictor.predict_future(days=days, model='LSTM')
+                                    model_pred_df = pd.DataFrame({
+                                    'Date': predictions.index.strftime('%Y-%m-%d'),
+                                    'Predicted Price': predictions.values
+                                    })
+                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                             
-                                            elif selected_model == 'Recurrent Neural Networks':
+                                elif selected_model == 'Recurrent Neural Networks':
                                                 
-                                                predictor.train_rnn_model()
-                                                predictions = predictor.predict_future(days=days, model='RNN')
-                                                model_pred_df = pd.DataFrame({
-                                                    'Date': predictions.index.strftime('%Y-%m-%d'),
-                                                    'Predicted Price': predictions.values
-                                                })
-                                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                    predictor.train_rnn_model()
+                                    predictions = predictor.predict_future(days=days, model='RNN')
+                                    model_pred_df = pd.DataFrame({
+                                        'Date': predictions.index.strftime('%Y-%m-%d'),
+                                            'Predicted Price': predictions.values
+                                    })
+                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                             
-                                            elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
-                                                predictor.train_arima_model()
-                                                predictions = predictor.predict_future(days=days, model='ARIMA')
+                                elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
+                                    predictor.train_arima_model()
+                                    predictions = predictor.predict_future(days=days, model='ARIMA')
                                                 
-                                                model_pred_df = pd.DataFrame({
-                                                    'Date': predictions.index.strftime('%Y-%m-%d'),
-                                                    'Predicted Price': predictions.values
-                                                })
-                                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                    model_pred_df = pd.DataFrame({
+                                        'Date': predictions.index.strftime('%Y-%m-%d'),
+                                            'Predicted Price': predictions.values
+                                    })
+                                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                         
-                                        except Exception as e:
-                                            st.error(f"Error predicting with {selected_model} model: {str(e)}")
+                            except Exception as e:
+                                st.error(f"Error predicting with {selected_model} model: {str(e)}")
                                             
-                                            st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
-                                            st.markdown("""
-                                            <div class="prediction-table">
-                                            """, unsafe_allow_html=True)
-                                            st.dataframe(
-                                                all_predictions.style.format({
-                                                    'Date': lambda x: x,
-                                                    'Predicted Price': '${:.2f}'
-                                                }).set_properties(**{
-                                                    #'background-color': 'lightskyblue',
-                                                    #'color': 'black'
-                                                }).highlight_max(
-                                                    subset=['Predicted Price'], color='#2b6929'
-                                                ),
-                                                use_container_width=True
-                                            )
-                                            st.markdown("</div>", unsafe_allow_html=True)
+                            st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
+                            st.markdown("""
+                                <div class="prediction-table">
+                                    """, unsafe_allow_html=True)
+                            st.dataframe(
+                                all_predictions.style.format({
+                                    'Date': lambda x: x,
+                                    'Predicted Price': '${:.2f}'
+                                }).set_properties(**{
+                                        #'background-color': 'lightskyblue',
+                                        #'color': 'black'
+                                }).highlight_max(
+                                    subset=['Predicted Price'], color='#2b6929'
+                                    ),
+                                    use_container_width=True
+                                        )
+                            st.markdown("</div>", unsafe_allow_html=True)
                                             
                                             
                                             st.markdown("### Risk Analysis")
