@@ -370,15 +370,18 @@ class StockPredictor:
                     elif method == 'ARIMA':
                         
                         if self.model_fit is None:
-                            
-                            self.train_arima_model()
+                            # Reset the index before training the ARIMA model
+                            prices = self.data['Close'].reset_index(drop=True)
+                            train_data = prices[:-30]
+                            model = ARIMA(train_data, order=(5, 1, 2))
+                            self.model_fit = model.fit()
                             predictions = self.model_fit.forecast(steps=days)
                             self.predictions = pd.Series(predictions, index=future_dates)
                             
                             return self.predictions
                         
-                        else:
-                            raise ValueError(f"Unsupported prediction method: {method}")
+                    else:
+                        raise ValueError(f"Unsupported prediction method: {method}")
         
         except Exception as e:
             
