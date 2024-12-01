@@ -171,6 +171,7 @@ class StockPredictor:
             'Last Price': self.last_train_price,
             'Avg Daily Change': self.avg_daily_change,
             'Trend': self.trend
+        }
             
         return metrics
 
