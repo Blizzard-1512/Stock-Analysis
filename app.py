@@ -267,7 +267,7 @@ class StockPredictor:
                 'scaler': scaler
             }
 
-            return self.models['RNN']['metrics']
+            return predictions
 
         except ImportError:
             st.warning("TensorFlow/Keras not available. Skipping RNN model.")
