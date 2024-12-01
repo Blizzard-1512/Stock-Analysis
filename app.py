@@ -678,30 +678,29 @@ def main():
             # Risk Analysis section
             st.markdown("### Risk Analysis")
             # Input number of shares & days for risk calculation
-            n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
-            days_freq = ['Years', 'Months', 'Weeks', 'Days']
             col1, col2 = st.columns([2, 1])
-            
-            with col1:
+             with col1:
                 freq = st.number_input("Enter the holding period", "")
                 
             with col2:
-                years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
+                #years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
                 selected_days_freq = st.selectbox("Select Frequency", days_freq)
-
-            if selected_days_freq == 'Years':
-                holding_period = freq*365
-
-            elif selected_days_freq == 'Months':
-                holding_period = freq*30
-
-            elif selected_days_freq == 'Weeks':
-                holding_period = freq*7
-
-            else:
-                holding_period = freq
-            
-            if st.button("Calculate Risk Metrics"):
+            n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
+            days_freq = ['Years', 'Months', 'Weeks', 'Days']
+                        if selected_days_freq == 'Years':
+                            holding_period = freq*365
+                        
+                        elif selected_days_freq == 'Months':
+                            holding_period = freq*30
+                        
+                        elif selected_days_freq == 'Weeks':
+                            holding_period = freq*7
+                        
+                        else:
+                            holding_period = freq
+                            
+                            
+                            if st.button("Calculate Risk Metrics"):
                 with st.spinner("Calculating Value at Risk..."):
                     try:
                         # Calculate VaR metrics
