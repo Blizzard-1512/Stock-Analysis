@@ -205,6 +205,7 @@ class StockPredictor:
         if self.data is None:
             raise ValueError("No data available. Call fetch_data() first.")
 
+        prices = prices.reset_index(drop=True)
         prices = self.data['Close']
         train_data = prices[:-validation_size]
         val_data = prices[-validation_size:]
