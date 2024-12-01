@@ -657,21 +657,21 @@ def main():
                                 'Date': predictions.index.strftime('%Y-%m-%d'),
                                 'Predicted Price': predictions.values
                             })
-                            model_pred_df['Model'] = model
+                            #model_pred_df['Model'] = model
                             
-                            all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                            #all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                     
                     except Exception as e:
                         st.error(f"Error predicting with {model} model: {str(e)}")
                         
                         
                 st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
-                all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
+                #all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                 st.markdown("""
                 <div class="prediction-table">
                 """, unsafe_allow_html=True)
                 st.dataframe(
-                    all_predictions.style.format({
+                    model_pred_df.style.format({
                         'Date': lambda x: x,
                         'Predicted Price': '${:.2f}'
                     }).set_properties(**{
