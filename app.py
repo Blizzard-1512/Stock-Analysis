@@ -67,11 +67,17 @@ class StockPredictor:
         self.ticker = ticker.upper()
         self.years = years
         self.data = None
-        self.model = None
         self.model_fit = None
         self.predictions = None
         self.metrics = {}
         self.var_metrics = {}
+        self.models = {
+            'TAES': None,  # Trend-adjusted Exponential Smoothing (existing method)
+            'LSTM': None,  # Placeholder for LSTM model
+            'RNN': None,   # Placeholder for RNN model
+            'ARIMA': None  # Placeholder for ARIMA model
+        }
+        self.model_predictions = {}
 
     def fetch_data(self) -> pd.DataFrame:
         end_date = datetime.now()
@@ -103,6 +109,208 @@ class StockPredictor:
 
         except Exception as e:
             raise ValueError(f"Error fetching data for {self.ticker}: {str(e)}")
+
+    def prepare_ml_data(self, test_size=0.2, look_back=60):
+        """
+        Prepare data for machine learning models
+        """
+        if self.data is None:
+            raise ValueError("No data available. Call fetch_data() first.")
+
+        # Use closing prices for prediction
+        prices = self.data['Close'].values
+        
+        # Normalize the data
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled_prices = scaler.fit_transform(prices.reshape(-1, 1))
+
+        # Create sequences for time series prediction
+        X, y = [], []
+        for i in range(len(scaled_prices) - look_back):
+            X.append(scaled_prices[i:i+look_back])
+            y.append(scaled_prices[i+look_back])
+        
+        X, y = np.array(X), np.array(y)
+
+        # Split into train and test sets
+        split = int(len(X) * (1-test_size))
+        X_train, X_test = X[:split], X[split:]
+        y_train, y_test = y[:split], y[split:]
+        
+        return {
+            'X_train': X_train,
+            'X_test': X_test,
+            'y_train': y_train,
+            'y_test': y_test,
+            'scaler': scaler,
+            'look_back': look_back
+        }
+
+    def train_taes_model(self, validation_size: int = 30):
+        """
+        Train Trend-Adjusted Exponential Smoothing (existing method)
+        """
+        metrics = self.train_model(validation_size)
+        self.models['TAES'] = {
+            'metrics': metrics,
+            'last_train_price': self.last_train_price,
+            'avg_daily_change': self.avg_daily_change,
+            'trend': self.trend
+        }
+        return metrics
+
+    def train_lstm_model(self):
+        """
+        Train LSTM model (placeholder implementation)
+        """
+        try:
+            from tensorflow.keras.models import Sequential
+            from tensorflow.keras.layers import LSTM, Dense
+            
+            # Prepare data
+            data = self.prepare_ml_data()
+            X_train, y_train = data['X_train'], data['y_train']
+            X_test, y_test = data['X_test'], data['y_test']
+            scaler = data['scaler']
+
+            # Build LSTM model
+            model = Sequential([
+                LSTM(50, activation='relu', input_shape=(X_train.shape[1], 1), return_sequences=True),
+                LSTM(50, activation='relu'),
+                Dense(1)
+            ])
+            model.compile(optimizer='adam', loss='mse')
+
+            # Train the model
+            history = model.fit(X_train, y_train, 
+                                epochs=50, 
+                                batch_size=32, 
+                                validation_data=(X_test, y_test),
+                                verbose=0)
+
+            # Make predictions
+            predictions = model.predict(X_test)
+            
+            # Inverse transform predictions
+            predictions = scaler.inverse_transform(predictions)
+            y_test_orig = scaler.inverse_transform(y_test)
+
+            # Calculate metrics
+            mape = mean_absolute_percentage_error(y_test_orig, predictions)
+            rmse = np.sqrt(mean_squared_error(y_test_orig, predictions))
+
+            # Store model and metrics
+            self.models['LSTM'] = {
+                'model': model,
+                'metrics': {
+                    'MAPE': mape,
+                    'RMSE': rmse,
+                    'Method': 'LSTM'
+                },
+                'scaler': scaler
+            }
+
+            return self.models['LSTM']['metrics']
+
+        except ImportError:
+            st.warning("TensorFlow/Keras not available. Skipping LSTM model.")
+            return None
+
+    def train_rnn_model(self):
+        """
+        Train RNN model (placeholder implementation)
+        """
+        try:
+            from tensorflow.keras.models import Sequential
+            from tensorflow.keras.layers import SimpleRNN, Dense
+            
+            # Prepare data
+            data = self.prepare_ml_data()
+            X_train, y_train = data['X_train'], data['y_train']
+            X_test, y_test = data['X_test'], data['y_test']
+            scaler = data['scaler']
+
+            # Build RNN model
+            model = Sequential([
+                SimpleRNN(50, activation='relu', input_shape=(X_train.shape[1], 1)),
+                Dense(1)
+            ])
+            model.compile(optimizer='adam', loss='mse')
+
+            # Train the model
+            history = model.fit(X_train, y_train, 
+                                epochs=50, 
+                                batch_size=32, 
+                                validation_data=(X_test, y_test),
+                                verbose=0)
+
+            # Make predictions
+            predictions = model.predict(X_test)
+            
+            # Inverse transform predictions
+            predictions = scaler.inverse_transform(predictions)
+            y_test_orig = scaler.inverse_transform(y_test)
+
+            # Calculate metrics
+            mape = mean_absolute_percentage_error(y_test_orig, predictions)
+            rmse = np.sqrt(mean_squared_error(y_test_orig, predictions))
+
+            # Store model and metrics
+            self.models['RNN'] = {
+                'model': model,
+                'metrics': {
+                    'MAPE': mape,
+                    'RMSE': rmse,
+                    'Method': 'RNN'
+                },
+                'scaler': scaler
+            }
+
+            return self.models['RNN']['metrics']
+
+        except ImportError:
+            st.warning("TensorFlow/Keras not available. Skipping RNN model.")
+            return None
+
+    def train_arima_model(self):
+        """
+        Train ARIMA model (placeholder implementation)
+        """
+        try:
+            from statsmodels.tsa.arima.model import ARIMA
+            
+            # Prepare data (using closing prices)
+            prices = self.data['Close'].values
+            
+            # Fit ARIMA model
+            # Note: In a real implementation, you'd use grid search or auto_arima 
+            # to find the best parameters
+            model = ARIMA(prices, order=(5,1,0))
+            model_fit = model.fit()
+
+            # Make in-sample predictions
+            predictions = model_fit.predict()
+
+            # Calculate metrics
+            mape = mean_absolute_percentage_error(prices[len(predictions):], predictions)
+            rmse = np.sqrt(mean_squared_error(prices[len(predictions):], predictions))
+
+            # Store model and metrics
+            self.models['ARIMA'] = {
+                'model': model_fit,
+                'metrics': {
+                    'MAPE': mape,
+                    'RMSE': rmse,
+                    'Method': 'ARIMA'
+                }
+            }
+
+            return self.models['ARIMA']['metrics']
+
+        except ImportError:
+            st.warning("Statsmodels not available. Skipping ARIMA model.")
+            return None
+
 
     def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
         if self.data is None:
@@ -147,53 +355,58 @@ class StockPredictor:
 
         return self.var_metrics
 
-    
+    def predict_future(self, days: int = 5, model: str = 'TAES'):
+        """
+        Predict future stock prices using specified model
+        """
+        if model not in self.models or self.models[model] is None:
+            raise ValueError(f"Model {model} not trained. Train the model first.")
 
-    def train_model(self, validation_size: int = 30) -> dict:
-        try:
-            if self.data is None:
-                raise ValueError("No data available. Call fetch_data() first.")
+        last_date = self.data.index[-1]
+        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1),
+                                     periods=days,
+                                     freq='B')
 
-            train_data = self.data[:-validation_size]
-            validation_data = self.data[-validation_size:]
-
-            last_prices = train_data['Close'].tail(20)
-            avg_daily_change = last_prices.diff().mean()
-            trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-            last_price = last_prices.iloc[-1]
-            forecast = np.array([last_price + (i + 1) * (avg_daily_change + trend) for i in range(validation_size)])
-
-            self.last_train_price = train_data['Close'].iloc[-1]
-            self.avg_daily_change = train_data['Close'].diff().mean()
-            self.trend = (train_data['Close'].iloc[-1] - train_data['Close'].iloc[-20]) / 20
-
-            self.metrics = {
-                'MAPE': mean_absolute_percentage_error(validation_data['Close'], forecast),
-                'RMSE': np.sqrt(mean_squared_error(validation_data['Close'], forecast)),
-                'Method': 'Trend-adjusted exponential smoothing'
-            }
-
-            return self.metrics
-
-        except Exception as e:
-            st.error(f"Error in training: {str(e)}")
-            return None
-
-    def predict_future(self, days: int = 5) -> pd.Series:
-        try:
-            last_date = self.data.index[-1]
-            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1),
-                                         periods=days,
-                                         freq='B')
-
-            predictions = np.array([self.last_train_price + (i + 1) * (self.avg_daily_change + self.trend)
+        # Prediction logic for different models
+        if model == 'TAES':
+            # Existing trend-adjusted method
+            taes_model = self.models['TAES']
+            predictions = np.array([taes_model['last_train_price'] + (i + 1) * 
+                                    (taes_model['avg_daily_change'] + taes_model['trend']) 
                                     for i in range(days)])
+        
+        elif model in ['LSTM', 'RNN']:
+            # For neural network models
+            ml_model = self.models[model]['model']
+            scaler = self.models[model]['scaler']
+            
+            # Get the last sequence of prices
+            last_sequence = self.data['Close'].tail(self.prepare_ml_data()['look_back'])
+            last_sequence_scaled = scaler.transform(last_sequence.values.reshape(-1, 1))
+            
+            # Predict future prices
+            predictions = []
+            current_sequence = last_sequence_scaled.reshape(1, -1, 1)
+            
+            for _ in range(days):
+                # Predict next price
+                next_pred_scaled = ml_model.predict(current_sequence)
+                next_pred = scaler.inverse_transform(next_pred_scaled)[0, 0]
+                
+                predictions.append(next_pred)
+                
+                # Update sequence
+                current_sequence = np.roll(current_sequence, -1)
+                current_sequence[0, -1, 0] = next_pred_scaled
+        
+        elif model == 'ARIMA':
+            # ARIMA prediction
+            arima_model = self.models['ARIMA']['model']
+            predictions = arima_model.forecast(steps=days)
 
-            self.predictions = pd.Series(predictions, index=future_dates)
-            return self.predictions
-
-        except Exception as e:
-            raise ValueError(f"Error making predictions: {str(e)}")
+        # Convert to Series
+        self.model_predictions[model] = pd.Series(predictions, index=future_dates)
+        return self.model_predictions[model]
 
     def create_plots(self):
         if self.data is None:
@@ -424,35 +637,56 @@ def main():
             days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
             
             if st.button("Predict Stock Prices"):
-                with st.spinner("Training model {selected_model} and generating predictions for next {days} business days..."):
-                    # Train the prediction model
-                    predictor.train_model()
-                    # Generate future price predictions
-                    predictions = predictor.predict_future(days=days)
+        with st.spinner(f"Training models and generating predictions for next {days} business days..."):
+            # Initialize predictions DataFrame
+            all_predictions = pd.DataFrame()
 
-                    st.markdown("#### Predicted Prices for Next 5 Business Days")
-                    pred_df = pd.DataFrame({
+            # Train and predict for each model
+            for model in prediction_models:
+                try:
+                    # Train the model based on the type
+                    if model == 'TAES':
+                        predictor.train_taes_model()
+                    elif model == 'LSTM':
+                        predictor.train_lstm_model()
+                    elif model == 'RNN':
+                        predictor.train_rnn_model()
+                    elif model == 'ARIMA':
+                        predictor.train_arima_model()
+
+                    # Generate predictions
+                    predictions = predictor.predict_future(days=days, model=selected_model)
+                    
+                    # Add to predictions DataFrame
+                    model_pred_df = pd.DataFrame({
                         'Date': predictions.index.strftime('%Y-%m-%d'),
                         'Predicted Price': predictions.values
                     })
+                    model_pred_df['Model'] = model
+                    
+                    all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
 
-                    # Display predictions in a styled table
-                    st.markdown("""
-                        <div class="prediction-table">
-                        """, unsafe_allow_html=True)
-                    st.dataframe(
-                        pred_df.style.format({
-                            'Date': lambda x: x,
-                            'Predicted Price': '${:.2f}'
-                        }).set_properties(**{
-                            #'background-color': 'lightskyblue',
-                            #'color': 'black'
-                        }).highlight_max(
-                            subset=['Predicted Price'], color='#2b6929'
-                        ),
-                        use_container_width=True
-                    )
-                    st.markdown("</div>", unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"Error predicting with {model} model: {str(e)}")
+
+            # Display predictions in a styled table
+            st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
+            st.markdown("""
+                <div class="prediction-table">
+                """, unsafe_allow_html=True)
+            st.dataframe(
+                all_predictions.style.format({
+                    'Date': lambda x: x,
+                    'Predicted Price': '${:.2f}'
+                }).set_properties(**{
+                    #'background-color': 'lightskyblue',
+                    #'color': 'black'
+                }).highlight_max(
+                    subset=['Predicted Price'], color='#2b6929'
+                ),
+                use_container_width=True
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
 
             # Risk Analysis section
             st.markdown("### Risk Analysis")
