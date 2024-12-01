@@ -309,28 +309,27 @@ class StockPredictor:
 
     def predict_future(self, days: int = 5, method='Trend-adjusted exponential smoothing'):
         """Predict future prices based on selected method"""
+        # First, validate data exists
         
-        last_date = self.data.index[-1]
-        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
-        
-        try:
+        if self.data is None or self.data.empty:
+            raise ValueError("No stock data available for prediction")
+            last_date = self.data.index[-1]
+            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=days, freq='B')
             
+        try:
             if method in ['TAES', 'Trend-adjusted exponential smoothing']:
-                # Fallback calculation for TAES method
+                # Trend-adjusted exponential smoothing method
                 last_prices = self.data['Close'].tail(20)
                 last_price = last_prices.iloc[-1]
                 avg_change = last_prices.diff().mean()
                 trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
                 predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
-                    
+                
                 self.predictions = pd.Series(predictions, index=future_dates)
-                    
                 return self.predictions
             
             elif method == 'LSTM':
-                
                 if self.model is None:
-                    
                     self.train_lstm_model()
                     last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
                     predictions_scaled = []
@@ -341,61 +340,60 @@ class StockPredictor:
                         predictions_scaled.append(next_pred_scaled[0, 0])
                         current_sequence = np.roll(current_sequence, -1, axis=1)
                         current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
+                        
                         predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                            
                         self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                        return self.predictions 
+                        return self.predictions
                 
-                elif method == 'RNN':
+            elif method == 'RNN':
+                
+                if self.model is None:
+                    self.train_rnn_model()
                     
-                    if self.model is None:
-                        
-                        self.train_rnn_model()
-                        last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
-                        predictions_scaled = []
-                        current_sequence = last_sequence
-                            
-                        for _ in range(days):
-                            next_pred_scaled = self.model.predict(current_sequence)
-                            predictions_scaled.append(next_pred_scaled[0, 0])
-                            current_sequence = np.roll(current_sequence, -1, axis=1)
-                            current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
-                            predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                                
-                            self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                            return self.predictions
+                    last_sequence = self.scaler.transform(self.data['Close'].tail(20).values.reshape(-1, 1)).reshape(1, 20, 1)
                     
-                    elif method == 'ARIMA':
+                    predictions_scaled = []
+                    current_sequence = last_sequence
+                    
+                    for _ in range(days):
+                        next_pred_scaled = self.model.predict(current_sequence)
+                        predictions_scaled.append(next_pred_scaled[0, 0])
+                        current_sequence = np.roll(current_sequence, -1, axis=1)
+                        current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
                         
-                        if self.model_fit is None:
-                            
-                            self.train_arima_model()
-                            predictions = self.model_fit.forecast(steps=days)
-                            self.predictions = pd.Series(predictions, index=future_dates)
-                            
-                            return self.predictions
+                        predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
+                        self.predictions = pd.Series(predictions, index=future_dates)
                         
-                        else:
-                            raise ValueError(f"Unsupported prediction method: {method}")
+                        return self.predictions
+                
+            elif method == 'ARIMA':
+                
+                if self.model_fit is None:
+                    
+                    self.train_arima_model()
+                    predictions = self.model_fit.forecast(steps=days)
+                    self.predictions = pd.Series(predictions, index=future_dates)
+                    
+                    return self.predictions
+                
+            else:
+                raise ValueError(f"Unsupported prediction method: {method}")
         
         except Exception as e:
             
             # Fallback to trend-adjusted exponential smoothing if any method fails
-            
             st.error(f"Prediction error in {method} method: {str(e)}")
             last_prices = self.data['Close'].tail(20)
             last_price = last_prices.iloc[-1]
             avg_change = last_prices.diff().mean()
             trend = (last_prices.iloc[-1] - last_prices.iloc[0]) / len(last_prices)
-                
+            
             predictions = np.array([last_price + (i + 1) * (avg_change + trend) for i in range(days)])
             self.predictions = pd.Series(predictions, index=future_dates)
+            
             return self.predictions
         
         except Exception as e:
-            
             # Log the error for debugging
             
             print(f"Prediction error in {method} method: {str(e)}")
@@ -679,14 +677,35 @@ def main():
 
             # Risk Analysis section
             st.markdown("### Risk Analysis")
-            # Input number of shares for risk calculation
+            # Input number of shares & days for risk calculation
             n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
+            days_freq = ['Years', 'Months', 'Weeks', 'Days']
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                freq = st.number_input("Enter the holding period", "").strip().upper()
+                
+            with col2:
+                years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
+                selected_days_freq = st.selectbox("Select Frequency", days_freq)
 
+            if selected_days_freq == 'Years':
+                holding_period = freq*365
+
+            elif selected_days_freq == 'Months':
+                holding_period = freq*30.44
+
+            elif selected_days_freq == 'Weeks':
+                holding_period = freq*7
+
+            else:
+                holding_period = freq
+            
             if st.button("Calculate Risk Metrics"):
                 with st.spinner("Calculating Value at Risk..."):
                     try:
                         # Calculate VaR metrics
-                        var_metrics = predictor.calculate_var(n_shares=n_shares)
+                        var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
 
                         # Prepare VaR data for display
                         var_data = []
