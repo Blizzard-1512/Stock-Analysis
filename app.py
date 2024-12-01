@@ -205,7 +205,6 @@ class StockPredictor:
         if self.data is None:
             raise ValueError("No data available. Call fetch_data() first.")
 
-        prices = prices.reset_index(drop=True)
         prices = self.data['Close']
         train_data = prices[:-validation_size]
         val_data = prices[-validation_size:]
@@ -363,25 +362,23 @@ class StockPredictor:
                             current_sequence = np.roll(current_sequence, -1, axis=1)
                             current_sequence[0, -1, 0] = next_pred_scaled[0, 0]
                             predictions = self.scaler.inverse_transform(np.array(predictions_scaled).reshape(-1, 1)).flatten()
-                            predictions = pd.Series(predictions, index=future_dates)
+                                
+                            self.predictions = pd.Series(predictions, index=future_dates)
                             
-                            return predictions
+                            return self.predictions
                     
                     elif method == 'ARIMA':
                         
                         if self.model_fit is None:
-                            # Reset the index before training the ARIMA model
-                            prices = self.data['Close'].reset_index(drop=True)
-                            train_data = prices[:-30]
-                            model = ARIMA(train_data, order=(5, 1, 2))
-                            self.model_fit = model.fit()
+                            
+                            self.train_arima_model()
                             predictions = self.model_fit.forecast(steps=days)
                             self.predictions = pd.Series(predictions, index=future_dates)
                             
                             return self.predictions
                         
-                    else:
-                        raise ValueError(f"Unsupported prediction method: {method}")
+                        else:
+                            raise ValueError(f"Unsupported prediction method: {method}")
         
         except Exception as e:
             
