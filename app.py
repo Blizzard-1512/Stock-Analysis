@@ -623,16 +623,10 @@ def main():
         ticker = st.text_input("Search for a company / ticker (e.g., Apple / AAPL)", "").strip()
         if company_name:
         # Get stock tickers
-        stock_tickers = get_stock_tickers(company_name)
-
-        # Create a list of stock names and tickers
-        stock_options = [f"{ticker.info['longName']} ({ticker.ticker})" for ticker in stock_tickers if ticker.info.get('longName')]
-
-        # Display stock selection dropdown
-        selected_stock = st.selectbox("Select a stock:", stock_options)
-
-        # Extract the ticker symbol from the selected stock
-        selected_ticker = selected_stock.split('(')[-1].strip(')')
+            stock_tickers = get_stock_tickers(company_name)
+            stock_options = [f"{ticker.info['longName']} ({ticker.ticker})" for ticker in stock_tickers if ticker.info.get('longName')]
+            selected_stock = st.selectbox("Select a stock:", stock_options)
+            selected_ticker = selected_stock.split('(')[-1].strip(')')
     with col2:
         # Number input for years of historical data with validation
         years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
