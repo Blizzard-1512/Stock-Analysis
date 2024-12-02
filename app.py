@@ -85,9 +85,9 @@ class StockPredictor:
         }
         self.model_predictions = {}
 
-    def get_stock_tickers(company_name):
+    def get_stock_tickers(company):
         #Fetch data from yfinance
-        tickers = yf.Tickers(company_name)
+        tickers = yf.Tickers(company)
         return tickers.tickers
 
     def fetch_data(self) -> pd.DataFrame:
@@ -620,6 +620,7 @@ def main():
     col1, col2 = st.columns([2, 1])
     with col1:
         # Input for stock ticker, converting to uppercase and removing whitespace
+        company_name = st.text_input("Enter Company Name:")
         ticker = st.text_input("Search for a company / ticker (e.g., Apple / AAPL)", "").strip()
         if company:
         # Get stock tickers
