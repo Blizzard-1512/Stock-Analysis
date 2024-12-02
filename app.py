@@ -64,8 +64,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 class StockPredictor:
-    def __init__(self, ticker: str, years: int = 10):
-        self.ticker = ticker.upper()
+    #def get_stock_tickers(company_name):
+    # Fetch data from yfinance
+    #tickers = yf.Tickers(company_name)
+    #return tickers.tickers
+    
+    def __init__(self, company: str, years: int = 10):
+        self.ticker = yf.tickers(company)
         self.years = years
         self.data = None
         self.model_fit = None
