@@ -64,13 +64,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 class StockPredictor:
-    #def get_stock_tickers(company_name):
-    # Fetch data from yfinance
-    #tickers = yf.Tickers(company_name)
-    #return tickers.tickers
-    
-    def __init__(self, company: str, years: int = 10):
-        self.ticker = yf.tickers(company)
+    def __init__(self, ticker: str, years: int = 10):
+        self.ticker = ticker.upper()
         self.years = years
         self.data = None
         self.model_fit = None
@@ -84,11 +79,6 @@ class StockPredictor:
             'ARIMA': None  # Placeholder for ARIMA model
         }
         self.model_predictions = {}
-
-    def get_stock_tickers(company):
-        #Fetch data from yfinance
-        tickers = yf.Tickers(company)
-        return tickers.tickers
 
     def fetch_data(self) -> pd.DataFrame:
         end_date = datetime.now()
@@ -620,14 +610,7 @@ def main():
     col1, col2 = st.columns([2, 1])
     with col1:
         # Input for stock ticker, converting to uppercase and removing whitespace
-        company_name = st.text_input("Enter Company Name:")
-        #ticker = st.text_input("Search for a company / ticker (e.g., Apple / AAPL)", "").strip()
-        if company_name:
-        # Get stock tickers
-            stock_tickers = get_stock_tickers(company_name)
-            stock_options = [f"{ticker.info['longName']} ({ticker.ticker})" for ticker in stock_tickers if ticker.info.get('longName')]
-            selected_stock = st.selectbox("Select a stock:", stock_options)
-            selected_ticker = selected_stock.split('(')[-1].strip(')')
+        ticker = st.text_input("Enter Stock Ticker Symbol (e.g., AAPL)", "").strip().upper()
     with col2:
         # Number input for years of historical data with validation
         years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
