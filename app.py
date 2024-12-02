@@ -86,7 +86,7 @@ class StockPredictor:
         self.model_predictions = {}
 
     def get_stock_tickers(company_name):
-        Fetch data from yfinance
+        #Fetch data from yfinance
         tickers = yf.Tickers(company_name)
         return tickers.tickers
 
