@@ -85,6 +85,11 @@ class StockPredictor:
         }
         self.model_predictions = {}
 
+    def get_stock_tickers(company_name):
+        Fetch data from yfinance
+        tickers = yf.Tickers(company_name)
+        return tickers.tickers
+
     def fetch_data(self) -> pd.DataFrame:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=self.years * 365)
@@ -615,7 +620,19 @@ def main():
     col1, col2 = st.columns([2, 1])
     with col1:
         # Input for stock ticker, converting to uppercase and removing whitespace
-        ticker = st.text_input("Enter Stock Ticker Symbol (e.g., AAPL)", "").strip().upper()
+        ticker = st.text_input("Search for a company / ticker (e.g., Apple / AAPL)", "").strip()
+        if company_name:
+        # Get stock tickers
+        stock_tickers = get_stock_tickers(company_name)
+
+        # Create a list of stock names and tickers
+        stock_options = [f"{ticker.info['longName']} ({ticker.ticker})" for ticker in stock_tickers if ticker.info.get('longName')]
+
+        # Display stock selection dropdown
+        selected_stock = st.selectbox("Select a stock:", stock_options)
+
+        # Extract the ticker symbol from the selected stock
+        selected_ticker = selected_stock.split('(')[-1].strip(')')
     with col2:
         # Number input for years of historical data with validation
         years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
