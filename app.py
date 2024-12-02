@@ -621,7 +621,7 @@ def main():
     with col1:
         # Input for stock ticker, converting to uppercase and removing whitespace
         ticker = st.text_input("Search for a company / ticker (e.g., Apple / AAPL)", "").strip()
-        if company_name:
+        if company:
         # Get stock tickers
             stock_tickers = get_stock_tickers(company_name)
             stock_options = [f"{ticker.info['longName']} ({ticker.ticker})" for ticker in stock_tickers if ticker.info.get('longName')]
