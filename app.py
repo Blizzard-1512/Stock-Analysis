@@ -817,15 +817,12 @@ def main():
 def display_portfolio_dashboard():
     st.title("Portfolio Analysis")
     
-    # Create a container to hold the portfolio input fields
-    portfolio_container = st.container()
-    
-    # Create a list to store the portfolio data
+    # Initialize portfolio data in session state
     if 'portfolio_data' not in st.session_state:
         st.session_state.portfolio_data = []
     
     # Form for adding stocks
-    with portfolio_container.form(key="portfolio_form"):
+    with st.form(key="portfolio_form"):
         symbol = st.text_input(f"Stock Symbol {len(st.session_state.portfolio_data) + 1}")
         shares = st.number_input(f"Number of Shares {len(st.session_state.portfolio_data) + 1}", min_value=1, step=1)
         allocation = st.number_input(f"Allocation (%) {len(st.session_state.portfolio_data) + 1}", min_value=0.0, max_value=100.0, step=0.1)
@@ -833,7 +830,6 @@ def display_portfolio_dashboard():
         
         if submit_button and symbol:
             st.session_state.portfolio_data.append({"symbol": symbol, "shares": shares, "allocation": allocation})
-            st.experimental_rerun()
     
     # Display current portfolio
     if st.session_state.portfolio_data:
@@ -844,7 +840,7 @@ def display_portfolio_dashboard():
     # Analyze button
     analyze_button = st.button("Analyze")
     if analyze_button and st.session_state.portfolio_data:
-        # Calculate the portfolio performance metrics
+        # Calculate portfolio performance metrics
         portfolio_return = calculate_portfolio_return(st.session_state.portfolio_data)
         portfolio_std_dev = calculate_portfolio_std_dev(st.session_state.portfolio_data)
         sharpe_ratio = calculate_sharpe_ratio(portfolio_return, portfolio_std_dev)
@@ -853,7 +849,7 @@ def display_portfolio_dashboard():
         information_ratio = calculate_information_ratio(portfolio_return, st.session_state.portfolio_data)
         jensen_alpha = calculate_jensen_alpha(portfolio_return, st.session_state.portfolio_data)
         
-        # Display the portfolio performance metrics in a table
+        # Display performance metrics
         st.markdown("### Portfolio Performance Metrics")
         metrics_data = {
             "Metric": ["Portfolio Return", "Portfolio Standard Deviation", "Sharpe's Ratio", "Treynor's Ratio", "Sortino's Ratio", "Information Ratio", "Jensen's Alpha"],
