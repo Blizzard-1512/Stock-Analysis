@@ -816,40 +816,43 @@ def main():
 
 def display_portfolio_dashboard():
     st.title("Portfolio Analysis")
-
+    
     # Create a container to hold the portfolio input fields
     portfolio_container = st.container()
-
-    # Add a button to allow the user to add more stocks to the portfolio
-    add_stock_button = portfolio_container.button("Add Stock")
-
+    
     # Create a list to store the portfolio data
-    portfolio_data = []
-
-    # Loop to handle the portfolio input fields
-    while add_stock_button or portfolio_data:
-        with portfolio_container.form(key=f"portfolio_form_{len(portfolio_data)}"):
-            symbol = portfolio_container.text_input(f"Stock Symbol {len(portfolio_data) + 1}")
-            shares = portfolio_container.number_input(f"Number of Shares {len(portfolio_data) + 1}", min_value=1, step=1)
-            allocation = portfolio_container.number_input(f"Allocation (%) {len(portfolio_data) + 1}", min_value=0.0, max_value=100.0, step=0.1)
-            submit_button = portfolio_container.form_submit_button("Add to Portfolio")
-
-            if submit_button:
-                portfolio_data.append({"symbol": symbol, "shares": shares, "allocation": allocation})
-
-    # Add an "Analyze" button to trigger the portfolio analysis
+    if 'portfolio_data' not in st.session_state:
+        st.session_state.portfolio_data = []
+    
+    # Form for adding stocks
+    with portfolio_container.form(key="portfolio_form"):
+        symbol = st.text_input(f"Stock Symbol {len(st.session_state.portfolio_data) + 1}")
+        shares = st.number_input(f"Number of Shares {len(st.session_state.portfolio_data) + 1}", min_value=1, step=1)
+        allocation = st.number_input(f"Allocation (%) {len(st.session_state.portfolio_data) + 1}", min_value=0.0, max_value=100.0, step=0.1)
+        submit_button = st.form_submit_button("Add to Portfolio")
+        
+        if submit_button and symbol:
+            st.session_state.portfolio_data.append({"symbol": symbol, "shares": shares, "allocation": allocation})
+            st.experimental_rerun()
+    
+    # Display current portfolio
+    if st.session_state.portfolio_data:
+        st.write("Current Portfolio:")
+        portfolio_df = pd.DataFrame(st.session_state.portfolio_data)
+        st.dataframe(portfolio_df)
+    
+    # Analyze button
     analyze_button = st.button("Analyze")
-
-    if analyze_button:
+    if analyze_button and st.session_state.portfolio_data:
         # Calculate the portfolio performance metrics
-        portfolio_return = calculate_portfolio_return(portfolio_data)
-        portfolio_std_dev = calculate_portfolio_std_dev(portfolio_data)
+        portfolio_return = calculate_portfolio_return(st.session_state.portfolio_data)
+        portfolio_std_dev = calculate_portfolio_std_dev(st.session_state.portfolio_data)
         sharpe_ratio = calculate_sharpe_ratio(portfolio_return, portfolio_std_dev)
-        treynor_ratio = calculate_treynor_ratio(portfolio_return, portfolio_data)
-        sortino_ratio = calculate_sortino_ratio(portfolio_return, portfolio_data)
-        information_ratio = calculate_information_ratio(portfolio_return, portfolio_data)
-        jensen_alpha = calculate_jensen_alpha(portfolio_return, portfolio_data)
-
+        treynor_ratio = calculate_treynor_ratio(portfolio_return, st.session_state.portfolio_data)
+        sortino_ratio = calculate_sortino_ratio(portfolio_return, st.session_state.portfolio_data)
+        information_ratio = calculate_information_ratio(portfolio_return, st.session_state.portfolio_data)
+        jensen_alpha = calculate_jensen_alpha(portfolio_return, st.session_state.portfolio_data)
+        
         # Display the portfolio performance metrics in a table
         st.markdown("### Portfolio Performance Metrics")
         metrics_data = {
