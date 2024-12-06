@@ -814,52 +814,18 @@ def main():
             # Handle and display any errors that occur during processing
             st.error(f"Error: {str(e)}")
 
-def calculate_portfolio_return(portfolio_data):
-    # Placeholder implementation
-    return 0.05  # 5% default return
-
-def calculate_portfolio_std_dev(portfolio_data):
-    # Placeholder implementation
-    return 0.10  # 10% default standard deviation
-
-def calculate_sharpe_ratio(portfolio_return, portfolio_std_dev):
-    # Placeholder implementation
-    return 0.5
-
-def calculate_treynor_ratio(portfolio_return, portfolio_data):
-    # Placeholder implementation
-    return 0.3
-
-def calculate_sortino_ratio(portfolio_return, portfolio_data):
-    # Placeholder implementation
-    return 0.4
-
-def calculate_information_ratio(portfolio_return, portfolio_data):
-    # Placeholder implementation
-    return 0.2
-
-def calculate_jensen_alpha(portfolio_return, portfolio_data):
-    # Placeholder implementation
-    return 0.1
-
 def display_portfolio_dashboard():
     st.title("Portfolio Analysis")
     
-    # Initialize or get portfolio data
     if 'portfolio_data' not in st.session_state:
         st.session_state.portfolio_data = []
     
-    # Stock Input Form
     with st.form(key="stock_input_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            symbol = st.text_input("Stock Symbol")
-        with col2:
-            shares = st.number_input("Shares", min_value=1, step=1)
+        symbol = st.text_input("Stock Symbol")
+        shares = st.number_input("Shares", min_value=1, step=1)
         
         submit_button = st.form_submit_button("Add Stock")
         
-        # Handle stock addition
         if submit_button and symbol:
             new_stock = {
                 "symbol": symbol.upper(), 
@@ -867,52 +833,25 @@ def display_portfolio_dashboard():
             }
             st.session_state.portfolio_data.append(new_stock)
     
-    # Display Portfolio
     if st.session_state.portfolio_data:
-        st.markdown("### Current Portfolio")
         portfolio_df = pd.DataFrame(st.session_state.portfolio_data)
         st.dataframe(portfolio_df)
     
-    # Analysis Section
     if st.button("Analyze Portfolio"):
         if st.session_state.portfolio_data:
-            # Perform portfolio analysis
-            try:
-                portfolio_return = calculate_portfolio_return(st.session_state.portfolio_data)
-                portfolio_std_dev = calculate_portfolio_std_dev(st.session_state.portfolio_data)
-                sharpe_ratio = calculate_sharpe_ratio(portfolio_return, portfolio_std_dev)
-                treynor_ratio = calculate_treynor_ratio(portfolio_return, st.session_state.portfolio_data)
-                sortino_ratio = calculate_sortino_ratio(portfolio_return, st.session_state.portfolio_data)
-                information_ratio = calculate_information_ratio(portfolio_return, st.session_state.portfolio_data)
-                jensen_alpha = calculate_jensen_alpha(portfolio_return, st.session_state.portfolio_data)
-                
-                # Display Metrics
-                st.markdown("### Portfolio Performance Metrics")
-                metrics_data = {
-                    "Metric": [
-                        "Portfolio Return", 
-                        "Portfolio Standard Deviation", 
-                        "Sharpe's Ratio", 
-                        "Treynor's Ratio", 
-                        "Sortino's Ratio", 
-                        "Information Ratio", 
-                        "Jensen's Alpha"
-                    ],
-                    "Value": [
-                        portfolio_return, 
-                        portfolio_std_dev, 
-                        sharpe_ratio, 
-                        treynor_ratio, 
-                        sortino_ratio, 
-                        information_ratio, 
-                        jensen_alpha
-                    ]
-                }
-                metrics_df = pd.DataFrame(metrics_data)
-                st.dataframe(metrics_df.style.format({"Value": "{:.2f}"}))
-            
-            except Exception as e:
-                st.error(f"Error in portfolio analysis: {e}")
+            st.markdown("### Portfolio Performance Metrics")
+            metrics_data = {
+                "Metric": [
+                    "Placeholder Return", 
+                    "Placeholder Standard Deviation"
+                ],
+                "Value": [
+                    5.0,  # Example values 
+                    10.0
+                ]
+            }
+            metrics_df = pd.DataFrame(metrics_data)
+            st.dataframe(metrics_df.style.format({"Value": "{:.2f}"}))
         else:
             st.warning("Please add stocks to your portfolio before analyzing.")
 
