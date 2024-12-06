@@ -814,6 +814,34 @@ def main():
             # Handle and display any errors that occur during processing
             st.error(f"Error: {str(e)}")
 
+def calculate_portfolio_return(portfolio_data):
+    # Placeholder implementation
+    return 0.05  # 5% default return
+
+def calculate_portfolio_std_dev(portfolio_data):
+    # Placeholder implementation
+    return 0.10  # 10% default standard deviation
+
+def calculate_sharpe_ratio(portfolio_return, portfolio_std_dev):
+    # Placeholder implementation
+    return 0.5
+
+def calculate_treynor_ratio(portfolio_return, portfolio_data):
+    # Placeholder implementation
+    return 0.3
+
+def calculate_sortino_ratio(portfolio_return, portfolio_data):
+    # Placeholder implementation
+    return 0.4
+
+def calculate_information_ratio(portfolio_return, portfolio_data):
+    # Placeholder implementation
+    return 0.2
+
+def calculate_jensen_alpha(portfolio_return, portfolio_data):
+    # Placeholder implementation
+    return 0.1
+
 def display_portfolio_dashboard():
     st.title("Portfolio Analysis")
     
@@ -823,13 +851,11 @@ def display_portfolio_dashboard():
     
     # Stock Input Form
     with st.form(key="stock_input_form"):
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         with col1:
             symbol = st.text_input("Stock Symbol")
         with col2:
             shares = st.number_input("Shares", min_value=1, step=1)
-        with col3:
-            allocation = st.number_input("Allocation (%)", min_value=0.0, max_value=100.0, step=0.1)
         
         submit_button = st.form_submit_button("Add Stock")
         
@@ -837,8 +863,7 @@ def display_portfolio_dashboard():
         if submit_button and symbol:
             new_stock = {
                 "symbol": symbol.upper(), 
-                "shares": shares, 
-                "allocation": allocation
+                "shares": shares
             }
             st.session_state.portfolio_data.append(new_stock)
     
