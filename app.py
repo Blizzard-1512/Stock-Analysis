@@ -865,8 +865,8 @@ def display_portfolio_dashboard():
 if __name__ == "__main__":
     app_mode = st.selectbox("Select Mode", ["Single Stock", "Portfolio"])
 
-   if app_mode == "Single Stock":
-       main()
-   elif app_mode == "Portfolio":
-       display_portfolio_dashboard()
+if app_mode == "Single Stock":
+    main()
+elif app_mode == "Portfolio":
+    display_portfolio_dashboard()
 
