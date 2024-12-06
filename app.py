@@ -833,7 +833,6 @@ def display_portfolio_dashboard():
     
     # Display current portfolio
     if st.session_state.portfolio_data:
-        st.write("Current Portfolio:")
         portfolio_df = pd.DataFrame(st.session_state.portfolio_data)
         st.dataframe(portfolio_df)
     
