@@ -843,21 +843,25 @@ def main():
         This app allows you to analyze a portfolio of stocks. Enter the ticker symbols, number of shares, and other details to get started!
         """)
 
-        # List to store stock data
-        stock_data = st.session_state.get('stock_data', [])
+        # Initialize stock data in session state if not already present
+        if 'stock_data' not in st.session_state:
+            st.session_state.stock_data = []
 
         # Function to add a new stock input
         def add_stock():
             new_stock = {
-                'ticker': st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", key=f"ticker_{len(stock_data)}").strip().upper(),
-                'shares': st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=1, key=f"shares_{len(stock_data)}"),
-                'years': st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=10, key=f"years_{len(stock_data)}")
+                'ticker': st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", key=f"ticker_{len(st.session_state.stock_data)}").strip().upper(),
+                'shares': st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=1, key=f"shares_{len(st.session_state.stock_data)}"),
+                'years': st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=10, key=f"years_{len(st.session_state.stock_data)}")
             }
-            stock_data.append(new_stock)
-            st.session_state.stock_data = stock_data
+            st.session_state.stock_data.append(new_stock)
 
-        # Initial stock input
-        add_stock()
+        # Display existing stocks and allow adding new ones
+        for idx, stock in enumerate(st.session_state.stock_data):
+            with st.container():
+                st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", value=stock['ticker'], key=f"ticker_{idx}").strip().upper()
+                st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=stock['shares'], key=f"shares_{idx}")
+                st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=stock['years'], key=f"years_{idx}")
 
         # Button to add more stocks
         if st.button("+ Add Stock"):
@@ -868,9 +872,9 @@ def main():
             try:
                 # Fetch and process data for each stock
                 portfolio_data = pd.DataFrame()
-                total_shares = sum([stock['shares'] for stock in stock_data])
+                total_shares = sum([stock['shares'] for stock in st.session_state.stock_data])
 
-                for stock in stock_data:
+                for stock in st.session_state.stock_data:
                     ticker = stock['ticker']
                     shares = stock['shares']
                     years = stock['years']
