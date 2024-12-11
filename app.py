@@ -850,9 +850,9 @@ def main():
         # Function to add a new stock input
         def add_stock():
             new_stock = {
-                'ticker': st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", key=f"ticker_{len(st.session_state.stock_data)}").strip().upper(),
-                'shares': st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=1, key=f"shares_{len(st.session_state.stock_data)}"),
-                'years': st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=10, key=f"years_{len(st.session_state.stock_data)}")
+                'ticker': "",
+                'shares': 1,
+                'years': 10
             }
             st.session_state.stock_data.append(new_stock)
 
