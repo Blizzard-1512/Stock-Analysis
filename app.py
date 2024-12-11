@@ -874,10 +874,17 @@ def main():
                 portfolio_data = pd.DataFrame()
                 total_shares = sum([stock['shares'] for stock in st.session_state.stock_data])
 
+                if total_shares == 0:
+                    raise ValueError("Total number of shares must be greater than zero.")
+
                 for stock in st.session_state.stock_data:
-                    ticker = stock['ticker']
+                    ticker = stock['ticker'].strip().upper()
                     shares = stock['shares']
                     years = stock['years']
+
+                    if not ticker:
+                        raise ValueError(f"Ticker symbol cannot be empty for stock {idx + 1}.")
+
                     predictor = StockPredictor(ticker, years)
                     with st.spinner(f'Fetching data for {ticker}...'):
                         predictor.fetch_data()
