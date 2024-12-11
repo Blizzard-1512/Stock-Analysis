@@ -859,9 +859,24 @@ def main():
         # Display existing stocks and allow adding new ones
         for idx, stock in enumerate(st.session_state.stock_data):
             with st.container():
-                st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", value=stock['ticker'], key=f"ticker_{idx}").strip().upper()
-                st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=stock['shares'], key=f"shares_{idx}")
-                st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=stock['years'], key=f"years_{idx}")
+                ticker_key = f"ticker_{idx}"
+                shares_key = f"shares_{idx}"
+                years_key = f"years_{idx}"
+
+                # Retrieve current values from session state
+                current_ticker = st.session_state.get(ticker_key, "")
+                current_shares = st.session_state.get(shares_key, 1)
+                current_years = st.session_state.get(years_key, 10)
+
+                # Update session state with new values
+                new_ticker = st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", value=current_ticker, key=ticker_key).strip().upper()
+                new_shares = st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=current_shares, key=shares_key)
+                new_years = st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=current_years, key=years_key)
+
+                # Update session state
+                st.session_state[ticker_key] = new_ticker
+                st.session_state[shares_key] = new_shares
+                st.session_state[years_key] = new_years
 
         # Button to add more stocks
         if st.button("+ Add Stock"):
@@ -877,7 +892,7 @@ def main():
                 if total_shares == 0:
                     raise ValueError("Total number of shares must be greater than zero.")
 
-                for stock in st.session_state.stock_data:
+                for idx, stock in enumerate(st.session_state.stock_data):
                     ticker = stock['ticker'].strip().upper()
                     shares = stock['shares']
                     years = stock['years']
