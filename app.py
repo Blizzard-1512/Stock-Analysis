@@ -844,15 +844,17 @@ def main():
         """)
 
         # List to store stock data
-        stock_data = []
+        stock_data = st.session_state.get('stock_data', [])
 
         # Function to add a new stock input
         def add_stock():
-            with st.container():
-                ticker = st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", "").strip().upper()
-                shares = st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=1)
-                years = st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=10)
-                stock_data.append({'ticker': ticker, 'shares': shares, 'years': years})
+            new_stock = {
+                'ticker': st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", key=f"ticker_{len(stock_data)}").strip().upper(),
+                'shares': st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=1, key=f"shares_{len(stock_data)}"),
+                'years': st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=10, key=f"years_{len(stock_data)}")
+            }
+            stock_data.append(new_stock)
+            st.session_state.stock_data = stock_data
 
         # Initial stock input
         add_stock()
