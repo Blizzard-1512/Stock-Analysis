@@ -873,16 +873,11 @@ def main():
                 new_shares = st.number_input(f"Enter Number of Shares for Stock {idx + 1}", min_value=1, value=current_shares, key=shares_key)
                 new_years = st.number_input(f"Years of Historical Data for Stock {idx + 1}", min_value=1, max_value=20, value=current_years, key=years_key)
 
-                # Update session state
-                st.session_state[ticker_key] = new_ticker
-                st.session_state[shares_key] = new_shares
-                st.session_state[years_key] = new_years
-
                 # Debugging: Print current session state
                 st.write(f"Session State for Stock {idx + 1}:")
-                st.write(f"Ticker: {st.session_state[ticker_key]}")
-                st.write(f"Shares: {st.session_state[shares_key]}")
-                st.write(f"Years: {st.session_state[years_key]}")
+                st.write(f"Ticker: {new_ticker}")
+                st.write(f"Shares: {new_shares}")
+                st.write(f"Years: {new_years}")
 
         # Button to add more stocks
         if st.button("+ Add Stock"):
