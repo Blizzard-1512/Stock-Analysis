@@ -599,7 +599,8 @@ def calculate_portfolio_metrics(portfolio_data, risk_free_rate=0.02):
     sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_std_dev
     
     # Treynor's Ratio
-    beta = portfolio_returns.cov(yf.Ticker('^GSPC').history(period='1y')['Close'].pct_change().dropna()) / yf.Ticker('^GSPC').history(period='1y')['Close'].pct_change().dropna().var()
+    sp500_data = yf.Ticker('^GSPC').history(period='1y')['Close'].pct_change().dropna()
+    beta = portfolio_returns.cov(sp500_data) / sp500_data.var()
     treynors_ratio = (portfolio_return - risk_free_rate) / beta
     
     # Sortino's Ratio
@@ -608,7 +609,7 @@ def calculate_portfolio_metrics(portfolio_data, risk_free_rate=0.02):
     sortinos_ratio = (portfolio_return - risk_free_rate) / downside_deviation
     
     # Information Ratio
-    benchmark_returns = yf.Ticker('^GSPC').history(period='1y')['Close'].pct_change().dropna()
+    benchmark_returns = sp500_data
     tracking_error = np.std(portfolio_returns - benchmark_returns)
     information_ratio = (portfolio_return - benchmark_returns.mean() * 252) / tracking_error
     
@@ -629,7 +630,7 @@ def calculate_portfolio_metrics(portfolio_data, risk_free_rate=0.02):
 
 def main():
     # Dropdown menu to select between Single Stock and Portfolio
-    analysis_type = st.sidebar.selectbox("Select Analysis Type", ["Single Stock", "Portfolio"])
+    analysis_type = st.selectbox("Select Analysis Type", ["Single Stock", "Portfolio"])
 
     if analysis_type == "Single Stock":
         # Set the title and introduction for the Streamlit app
@@ -846,72 +847,77 @@ def main():
     elif analysis_type == "Portfolio":
         st.title("📈 Portfolio Analysis App")
         st.markdown("""
-        This app allows you to analyze a portfolio of stocks. Enter the ticker symbols, weights, and other details to get started!
+        This app allows you to analyze a portfolio of stocks. Enter the ticker symbols, number of shares, and other details to get started!
         """)
 
-        # Input for number of stocks in the portfolio
-        num_stocks = st.number_input("Number of Stocks in Portfolio", min_value=1, value=1, max_value=10)
+        # List to store stock data
+        stock_data = []
 
-        # Dictionary to store stock data
-        stock_data = {}
+        # Function to add a new stock input
+        def add_stock():
+            with st.container():
+                ticker = st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", "").strip().upper()
+                shares = st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=1)
+                years = st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=10)
+                stock_data.append({'ticker': ticker, 'shares': shares, 'years': years})
 
-        # Loop to get stock details
-        for i in range(num_stocks):
-            st.markdown(f"### Stock {i+1}")
-            ticker = st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL) for Stock {i+1}", "").strip().upper()
-            weight = st.number_input(f"Enter Weight for Stock {i+1} (e.g., 0.5)", min_value=0.0, max_value=1.0, value=1.0/num_stocks)
-            years = st.number_input(f"Years of Historical Data for Stock {i+1}", min_value=1, max_value=20, value=10)
-            stock_data[ticker] = {'weight': weight, 'years': years}
+        # Initial stock input
+        add_stock()
 
-        # Ensure weights sum to 1
-        total_weight = sum([stock_data[ticker]['weight'] for ticker in stock_data])
-        if total_weight != 1.0:
-            st.error("The sum of weights must be equal to 1.0.")
-        else:
-            if st.button("Analyze"):
-                try:
-                    # Fetch and process data for each stock
-                    portfolio_data = pd.DataFrame()
-                    for ticker, details in stock_data.items():
-                        predictor = StockPredictor(ticker, details['years'])
-                        with st.spinner(f'Fetching data for {ticker}...'):
-                            predictor.fetch_data()
-                        portfolio_data[ticker] = predictor.data['Close'].pct_change().dropna()
-                    
-                    # Add weights to the portfolio data
-                    portfolio_data['Weights'] = [stock_data[ticker]['weight'] for ticker in stock_data]
+        # Button to add more stocks
+        if st.button("+ Add Stock"):
+            add_stock()
 
-                    # Calculate portfolio metrics
-                    portfolio_metrics = calculate_portfolio_metrics(portfolio_data)
+        # Analyze Portfolio button
+        if st.button("Analyze Portfolio"):
+            try:
+                # Fetch and process data for each stock
+                portfolio_data = pd.DataFrame()
+                total_shares = sum([stock['shares'] for stock in stock_data])
 
-                    # Display portfolio metrics in a styled table
-                    st.markdown("#### Portfolio Metrics")
-                    st.markdown("""
-                    <div class="prediction-table">
-                    """, unsafe_allow_html=True)
-                    st.dataframe(
-                        pd.DataFrame(portfolio_metrics, index=[0]).style.format({
-                            'Portfolio Return': '{:.2f}%',
-                            'Portfolio Standard Deviation': '{:.2f}%',
-                            'Sharpe\'s Ratio': '{:.2f}',
-                            'Treynor\'s Ratio': '{:.2f}',
-                            'Sortino\'s Ratio': '{:.2f}',
-                            'Information Ratio': '{:.2f}',
-                            'Jensen\'s Alpha': '{:.2f}'
-                        }).set_properties(**{
-                            #'background-color': 'lightyellow',
-                            #'color': 'black'
-                        }).highlight_max(
-                            subset=['Portfolio Return', 'Sharpe\'s Ratio', 'Treynor\'s Ratio', 'Sortino\'s Ratio', 'Information Ratio', 'Jensen\'s Alpha'], color='#2b6929'
-                        ).highlight_min(
-                            subset=['Portfolio Standard Deviation'], color='#FF5733'
-                        ),
-                        use_container_width=True
-                    )
-                    st.markdown("</div>", unsafe_allow_html=True)
+                for stock in stock_data:
+                    ticker = stock['ticker']
+                    shares = stock['shares']
+                    years = stock['years']
+                    predictor = StockPredictor(ticker, years)
+                    with st.spinner(f'Fetching data for {ticker}...'):
+                        predictor.fetch_data()
+                    portfolio_data[ticker] = predictor.data['Close'].pct_change().dropna() * shares
 
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                # Calculate weights
+                portfolio_data['Weights'] = portfolio_data.sum(axis=1) / total_shares
+
+                # Calculate portfolio metrics
+                portfolio_metrics = calculate_portfolio_metrics(portfolio_data)
+
+                # Display portfolio metrics in a styled table
+                st.markdown("#### Portfolio Metrics")
+                st.markdown("""
+                <div class="prediction-table">
+                """, unsafe_allow_html=True)
+                st.dataframe(
+                    pd.DataFrame(portfolio_metrics, index=[0]).style.format({
+                        'Portfolio Return': '{:.2f}%',
+                        'Portfolio Standard Deviation': '{:.2f}%',
+                        'Sharpe\'s Ratio': '{:.2f}',
+                        'Treynor\'s Ratio': '{:.2f}',
+                        'Sortino\'s Ratio': '{:.2f}',
+                        'Information Ratio': '{:.2f}',
+                        'Jensen\'s Alpha': '{:.2f}'
+                    }).set_properties(**{
+                        #'background-color': 'lightyellow',
+                        #'color': 'black'
+                    }).highlight_max(
+                        subset=['Portfolio Return', 'Sharpe\'s Ratio', 'Treynor\'s Ratio', 'Sortino\'s Ratio', 'Information Ratio', 'Jensen\'s Alpha'], color='#2b6929'
+                    ).highlight_min(
+                        subset=['Portfolio Standard Deviation'], color='#FF5733'
+                    ),
+                    use_container_width=True
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
 
 # Main execution block
 if __name__ == "__main__":
