@@ -7,7 +7,6 @@ from scipy import stats
 from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 import plotly.graph_objects as go
 from sklearn.preprocessing import MinMaxScaler
-import tensorflow as tf
 from statsmodels.tsa.arima.model import ARIMA
 
 # Custom CSS to enhance the app's appearance
@@ -316,4 +315,604 @@ class StockPredictor:
             predictions = np.array(predictions)
 
             # Calculate metrics
-            aligned_prices = prices[-len(predictions):]  # Take
+            aligned_prices = prices[-len(predictions):]  # Take only the last 'len(predictions)' price 
+            if len(aligned_prices) != len(predictions):
+                raise ValueError("Inconsistent lengths for metrics calculation.")
+            mape = mean_absolute_percentage_error(aligned_prices, predictions)
+            rmse = np.sqrt(mean_squared_error(aligned_prices, predictions))
+
+            # Store model and metrics
+            self.models['ARIMA'] = {
+                'model': model,
+                'metrics': {
+                    'MAPE': mape,
+                    'RMSE': rmse,
+                    'Method': 'ARIMA'
+                }
+            }
+
+            return self.models['ARIMA']['metrics']
+
+        except ImportError:
+            st.warning("Statsmodels not available. Skipping ARIMA model.")
+            return None
+
+    def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
+        if self.data is None:
+            raise ValueError("No data available. Call fetch_data() first.")
+
+        returns = self.data['Returns'].dropna()
+        current_price = self.data['Close'].iloc[-1]
+        position_value = current_price * n_shares
+
+        mean_return = returns.mean()
+        std_return = returns.std()
+        z_score = stats.norm.ppf(1 - confidence_level)
+
+        # Calculate VaR values
+        parametric_var = position_value * (
+                z_score * std_return * np.sqrt(holding_period) - mean_return * holding_period)
+        historical_var = position_value * returns.quantile(1 - confidence_level) * np.sqrt(holding_period)
+
+        # Monte Carlo VaR
+        n_simulations = 10000
+        np.random.seed(42)
+        mc_returns = np.random.normal(mean_return, std_return, n_simulations)
+        mc_var = position_value * np.percentile(mc_returns, (1 - confidence_level) * 100) * np.sqrt(holding_period)
+
+        # Calculate required capital (3x VaR)
+        capital_multiplier = 3
+        required_capital = {
+            'Parametric': abs(float(parametric_var)) * capital_multiplier,
+            'Historical': abs(float(historical_var)) * capital_multiplier,
+            'Monte Carlo': abs(float(mc_var)) * capital_multiplier
+        }
+
+        benchmark_var = position_value * 0.015  # 1.5% of position value
+
+        self.var_metrics = {
+            'Parametric_VaR': float(parametric_var),
+            'Historical_VaR': float(historical_var),
+            'Monte_Carlo_VaR': float(mc_var),
+            'Benchmark_VaR': float(benchmark_var),
+            'Required_Capital': required_capital
+        }
+
+        return self.var_metrics
+
+    def predict_future(self, days: int = 5, model: str = 'TAES'):
+        """
+        Predict future stock prices using specified model
+        """
+        if model not in self.models or self.models[model] is None:
+            raise ValueError(f"Model {model} not trained. Train the model first.")
+
+        last_date = self.data.index[-1]
+        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1),
+                                     periods=days,
+                                     freq='B')
+
+        # Prediction logic for different models
+        if model == 'TAES':
+            # Existing trend-adjusted method
+            taes_model = self.models['TAES']
+            predictions = np.array([taes_model['last_train_price'] + (i + 1) * 
+                                    (taes_model['avg_daily_change'] + taes_model['trend']) 
+                                    for i in range(days)])
+        
+        elif model in ['LSTM', 'RNN']:
+            # For neural network models
+            ml_model = self.models[model]['model']
+            scaler = self.models[model]['scaler']
+            
+            # Get the last sequence of prices
+            last_sequence = self.data['Close'].tail(self.prepare_ml_data()['look_back'])
+            last_sequence_scaled = scaler.transform(last_sequence.values.reshape(-1, 1))
+            
+            # Predict future prices
+            predictions = []
+            current_sequence = last_sequence_scaled.reshape(1, -1, 1)
+            
+            for _ in range(days):
+                # Predict next price
+                next_pred_scaled = ml_model.predict(current_sequence)
+                next_pred = scaler.inverse_transform(next_pred_scaled)[0, 0]
+                
+                predictions.append(next_pred)
+                
+                # Update sequence
+                current_sequence = np.roll(current_sequence, -1)
+                current_sequence[0, -1, 0] = next_pred_scaled
+        
+        elif model == 'ARIMA':
+            # ARIMA prediction
+            arima_model = self.models['ARIMA']['model']
+            if days > len(self.data):
+                raise ValueError("Prediction period exceeds available data length.")
+            predictions = arima_model.forecast(steps=days)
+
+        # Convert to Series
+        self.model_predictions[model] = pd.Series(predictions, index=future_dates)
+        return self.model_predictions[model]
+
+    def create_plots(self):
+        if self.data is None:
+            raise ValueError("No data available.")
+
+        # Create figures list
+        figs = []
+
+        # OHLC plot
+        fig_ohlc = go.Figure()
+        fig_ohlc.add_trace(
+            go.Candlestick(
+                x=self.data.index,
+                open=self.data['Open'],
+                high=self.data['High'],
+                low=self.data['Low'],
+                close=self.data['Close'],
+                name='OHLC'
+            )
+        )
+        fig_ohlc.update_layout(
+            title=f"{self.ticker} OHLC Chart",
+            yaxis_title="Price (USD)",
+            template="plotly_white",
+            height=500
+        )
+        figs.append(fig_ohlc)
+
+        # Moving Averages plot
+        fig_ma = go.Figure()
+        for ma, color in zip(['MA5', 'MA20', 'MA50'], ['gold', 'orange', 'red']):
+            fig_ma.add_trace(
+                go.Scatter(
+                    x=self.data.index,
+                    y=self.data[ma],
+                    name=f'{ma}',
+                    line=dict(color=color, width=1)
+                )
+            )
+        fig_ma.update_layout(
+            title=f"{self.ticker} Moving Averages",
+            yaxis_title="Price (USD)",
+            template="plotly_white",
+            height=500
+        )
+        figs.append(fig_ma)
+
+        # Bollinger Bands plot
+        fig_bb = go.Figure()
+        fig_bb.add_trace(
+            go.Scatter(
+                x=self.data.index,
+                y=self.data['Upper_Band'],
+                name='Upper Band',
+                line=dict(color='gray', width=1)
+            )
+        )
+        fig_bb.add_trace(
+            go.Scatter(
+                x=self.data.index,
+                y=self.data['Lower_Band'],
+                name='Lower Band',
+                line=dict(color='gray', width=1),
+                fill='tonexty'
+            )
+        )
+        fig_bb.update_layout(
+            title=f"{self.ticker} Bollinger Bands",
+            yaxis_title="Price (USD)",
+            template="plotly_white",
+            height=500
+        )
+        figs.append(fig_bb)
+
+        # Volume plot
+        colors = ['red' if row['Open'] - row['Close'] > 0
+                  else 'green' for index, row in self.data.iterrows()]
+
+        fig_volume = go.Figure()
+        fig_volume.add_trace(
+            go.Bar(
+                x=self.data.index,
+                y=self.data['Volume'],
+                name='Volume',
+                marker_color=colors,
+                opacity=0.7
+            )
+        )
+        fig_volume.update_layout(
+            title=f"{self.ticker} Trading Volume",
+            yaxis_title="Volume",
+            template="plotly_white",
+            height=500
+        )
+        figs.append(fig_volume)
+
+        # Volatility plot
+        fig_volatility = go.Figure()
+        fig_volatility.add_trace(
+            go.Scatter(
+                x=self.data.index,
+                y=self.data['Volatility'],
+                name='Volatility',
+                line=dict(color='purple', width=1),
+                fill='tozeroy'
+            )
+        )
+        fig_volatility.update_layout(
+            title=f"{self.ticker} Price Volatility",
+            yaxis_title="Volatility",
+            template="plotly_white",
+            height=500
+        )
+        figs.append(fig_volatility)
+
+        return figs
+
+def get_stock_metrics(ticker):
+    """
+    Fetch key stock metrics from Yahoo Finance
+    """
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
+
+        # Extract key metrics with fallback values
+        metrics = {
+            'Market Cap': info.get('marketCap', 'N/A'),
+            'P/E Ratio': info.get('trailingPE', 'N/A'),
+            'Dividend Yield': f"{info.get('dividendYield', 0) * 100:.2f}%" if info.get('dividendYield') else 'N/A',
+            'EPS': info.get('trailingEps', 'N/A'),
+            '52 Week High': info.get('fiftyTwoWeekHigh', 'N/A'),
+            '52 Week Low': info.get('fiftyTwoWeekLow', 'N/A'),
+            'Beta': info.get('beta', 'N/A'),
+            'Sector': info.get('sector', 'N/A')
+        }
+
+        # Format market cap
+        if isinstance(metrics['Market Cap'], (int, float)):
+            if metrics['Market Cap'] >= 1e12:
+                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e12:.2f}T'
+            elif metrics['Market Cap'] >= 1e9:
+                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e9:.2f}B'
+            else:
+                metrics['Market Cap'] = f'${metrics["Market Cap"]/1e6:.2f}M'
+
+        return metrics
+    except Exception as e:
+        st.error(f"Could not fetch stock metrics: {e}")
+        return {}
+
+def calculate_portfolio_metrics(portfolio_data, risk_free_rate=0.02):
+    # Calculate portfolio returns
+    portfolio_returns = (portfolio_data * portfolio_data['Weights']).sum(axis=1)
+    
+    # Portfolio Return
+    portfolio_return = portfolio_returns.mean() * 252
+    
+    # Portfolio Standard Deviation
+    portfolio_std_dev = portfolio_returns.std() * np.sqrt(252)
+    
+    # Sharpe's Ratio
+    sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_std_dev
+    
+    # Treynor's Ratio
+    beta = portfolio_returns.cov(yf.Ticker('^GSPC').history(period='1y')['Close'].pct_change().dropna()) / yf.Ticker('^GSPC').history(period='1y')['Close'].pct_change().dropna().var()
+    treynors_ratio = (portfolio_return - risk_free_rate) / beta
+    
+    # Sortino's Ratio
+    downside_returns = portfolio_returns[portfolio_returns < 0]
+    downside_deviation = np.std(downside_returns) * np.sqrt(252)
+    sortinos_ratio = (portfolio_return - risk_free_rate) / downside_deviation
+    
+    # Information Ratio
+    benchmark_returns = yf.Ticker('^GSPC').history(period='1y')['Close'].pct_change().dropna()
+    tracking_error = np.std(portfolio_returns - benchmark_returns)
+    information_ratio = (portfolio_return - benchmark_returns.mean() * 252) / tracking_error
+    
+    # Jensen's Alpha
+    alpha = portfolio_return - (risk_free_rate + beta * (benchmark_returns.mean() * 252 - risk_free_rate))
+    
+    metrics = {
+        'Portfolio Return': portfolio_return,
+        'Portfolio Standard Deviation': portfolio_std_dev,
+        'Sharpe\'s Ratio': sharpe_ratio,
+        'Treynor\'s Ratio': treynors_ratio,
+        'Sortino\'s Ratio': sortinos_ratio,
+        'Information Ratio': information_ratio,
+        'Jensen\'s Alpha': alpha
+    }
+    
+    return metrics
+
+def main():
+    # Dropdown menu to select between Single Stock and Portfolio
+    analysis_type = st.sidebar.selectbox("Select Analysis Type", ["Single Stock", "Portfolio"])
+
+    if analysis_type == "Single Stock":
+        # Set the title and introduction for the Streamlit app
+        st.title("📈 Stock Analysis & Prediction App")
+        st.markdown("""
+        This app provides comprehensive stock analysis, price predictions, and risk metrics.
+        Enter a stock ticker symbol to get started!
+        """)
+
+        # Create input columns for stock ticker and years of historical data
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            # Input for stock ticker, converting to uppercase and removing whitespace
+            ticker = st.text_input("Enter Stock Ticker Symbol (e.g., AAPL)", "").strip().upper()
+        with col2:
+            # Number input for years of historical data with validation
+            years = st.number_input("Years of Historical Data", min_value=1, max_value=20, value=10)
+
+        # Only proceed if a valid ticker is entered
+        if ticker:
+            try:
+                # Initialize the StockPredictor with the chosen ticker and years
+                predictor = StockPredictor(ticker, years)
+
+                # Show a loading spinner while fetching data
+                with st.spinner(f'Fetching data for {ticker}...'):
+                    # Fetch historical stock data
+                    predictor.fetch_data()
+
+                # Get stock metrics from Yahoo Finance
+                stock_metrics = get_stock_metrics(ticker)
+
+                # Calculate current price and daily change
+                current_price = predictor.data['Close'].iloc[-1]
+                daily_change = (predictor.data['Close'].iloc[-1] - predictor.data['Close'].iloc[-2]) / \
+                               predictor.data['Close'].iloc[-2] * 100
+
+                # Display current stock information in metrics
+                st.markdown("### Current Stock Information")
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Current Price", f"${current_price:.2f}")
+                col2.metric("Daily Change", f"{daily_change:.2f}%", f"{daily_change:.2f}%")
+                col3.metric("Trading Volume", f"{predictor.data['Volume'].iloc[-1]:,.0f}")
+
+                # Display company metrics in styled cards
+                st.markdown("### Company Metrics")
+                metrics_cols = st.columns(4)
+                metric_keys = list(stock_metrics.keys())
+                for i, key in enumerate(metric_keys):
+                    with metrics_cols[i % 4]:
+                        st.markdown(f"""
+                        <div class="metric-card">
+                            <h3>{key}</h3>
+                            <div class="value">{stock_metrics[key]}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                # Generate and display technical analysis charts
+                st.markdown("### Technical Analysis Charts")
+                figs = predictor.create_plots()
+                for fig in figs:
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # Prediction section
+                st.markdown("### Price Predictions")
+                
+                prediction_models = ['Term Adjusted Exponential Smoothening', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
+                selected_model = st.selectbox("Select Prediction Model", prediction_models)
+                days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
+                
+                if st.button("Predict Stock Prices"):
+                    with st.spinner(f"Training {selected_model} model and generating predictions for next {days} business days..."):
+                        # Initialize predictions DataFrame
+                        all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
+                        
+                        try:
+                            if selected_model == 'Term Adjusted Exponential Smoothening':
+                                predictor.train_taes_model()
+                                predictions = predictor.predict_future(days=days, model='TAES')
+                                model_pred_df = pd.DataFrame({
+                                    'Date': predictions.index.strftime('%Y-%m-%d'),
+                                    'Predicted Price': predictions.values
+                                    })
+                                #model_pred_df['Model'] = selected_model
+                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                    
+                            elif selected_model == 'Long Short-Term Memory':
+                                predictor.train_lstm_model()
+                                predictions = predictor.predict_future(days=days, model=selected_model)
+                                model_pred_df = pd.DataFrame({
+                                    'Date': predictions.index.strftime('%Y-%m-%d'),
+                                    'Predicted Price': predictions.values
+                                    })
+                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                    
+                            elif selected_model == 'Recurrent Neural Networks':
+                                predictor.train_rnn_model()
+                                predictions = predictor.predict_future(days=days, model=selected_model)
+                                model_pred_df = pd.DataFrame({
+                                    'Date': predictions.index.strftime('%Y-%m-%d'),
+                                    'Predicted Price': predictions.values
+                                })
+                                #model_pred_df['Model'] = selected_model
+                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                                
+                            elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
+                                predictor.train_arima_model()
+                                
+                                predictions = predictor.predict_future(days=days, model='ARIMA')
+                                
+                                model_pred_df = pd.DataFrame({
+                                    'Date': predictions.index.strftime('%Y-%m-%d'),
+                                    'Predicted Price': predictions.values
+                                })
+                                #model_pred_df['Model'] = selected_model
+                                
+                                all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
+                        
+                        except Exception as e:
+                            st.error(f"Error predicting with {selected_model} model: {str(e)}")
+                            
+                    st.markdown("#### Predicted Prices for Next {} Business Days".format(days))
+                    st.markdown("""
+                    <div class="prediction-table">
+                    """, unsafe_allow_html=True)
+                    st.dataframe(
+                        all_predictions.style.format({
+                            'Date': lambda x: x,
+                            'Predicted Price': '${:.2f}'
+                        }).set_properties(**{
+                            #'background-color': 'lightskyblue',
+                            #'color': 'black'
+                        }).highlight_max(
+                            subset=['Predicted Price'], color='#2b6929'
+                        ),
+                        use_container_width=True
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                # Risk Analysis section
+                st.markdown("### Risk Analysis")
+                # Input number of shares for risk calculation
+                freq_dict = ['Years', 'Months', 'Weeks', 'Days']
+                n_shares = st.number_input("Number of Shares", min_value=1, value=100, max_value=5000)
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    freq = st.number_input("Enter the holding period", min_value=1.0, value=1.0, max_value=500.0, step=1.0)
+
+                with col2:
+                    freq_mode = st.selectbox("Select frequency mode", freq_dict)
+
+                if freq_mode == 'Years':
+                    holding_period = freq * 365
+
+                elif freq_mode == 'Months':
+                    holding_period = freq * 30
+
+                elif freq_mode == 'Weeks':
+                    holding_period = freq * 7
+
+                else:
+                    holding_period = freq
+                
+                if st.button("Calculate Risk Metrics"):
+                    with st.spinner("Calculating Value at Risk..."):
+                        # Calculate VaR metrics
+                        var_metrics = predictor.calculate_var(n_shares=n_shares, holding_period=holding_period)
+
+                        # Prepare VaR data for display
+                        var_data = []
+                        methods = ['Parametric', 'Historical', 'Monte Carlo', 'Benchmark']
+
+                        for method in methods:
+                            # Safely handle VaR value retrieval
+                            var_value = abs(var_metrics.get(f'{method.replace(" ", "_")}_VaR', 0))
+
+                            # Safely handle required capital
+                            if method != 'Benchmark':
+                                required_capital = var_metrics['Required_Capital'].get(method, 0)
+                            else:
+                                required_capital = 0
+
+                            var_data.append({
+                                'Method': method,
+                                'VaR': var_value,
+                                'Required Capital': required_capital
+                            })
+
+                        var_df = pd.DataFrame(var_data)
+
+                        # Display VaR metrics in a styled table
+                        st.markdown("#### Value at Risk (VaR) Analysis")
+                        st.markdown("""
+                                <div class="prediction-table">
+                                """, unsafe_allow_html=True)
+                        st.dataframe(
+                            var_df.style.format({
+                                'VaR': '${:,.2f}',
+                                'Required Capital': '${:,.2f}'
+                            }).set_properties(**{
+                                #'background-color': 'lightyellow',
+                                #'color': 'black'
+                            }).highlight_min(
+                                subset=['VaR'], color='#2b6929'
+                            ),
+                            use_container_width=True
+                        )
+                        st.markdown("</div>", unsafe_allow_html=True)
+
+            except Exception as e:
+                # Handle and display any errors that occur during processing
+                st.error(f"Error: {str(e)}")
+
+    elif analysis_type == "Portfolio":
+        st.title("📈 Portfolio Analysis App")
+        st.markdown("""
+        This app allows you to analyze a portfolio of stocks. Enter the ticker symbols, weights, and other details to get started!
+        """)
+
+        # Input for number of stocks in the portfolio
+        num_stocks = st.number_input("Number of Stocks in Portfolio", min_value=1, value=1, max_value=10)
+
+        # Dictionary to store stock data
+        stock_data = {}
+
+        # Loop to get stock details
+        for i in range(num_stocks):
+            st.markdown(f"### Stock {i+1}")
+            ticker = st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL) for Stock {i+1}", "").strip().upper()
+            weight = st.number_input(f"Enter Weight for Stock {i+1} (e.g., 0.5)", min_value=0.0, max_value=1.0, value=1.0/num_stocks)
+            years = st.number_input(f"Years of Historical Data for Stock {i+1}", min_value=1, max_value=20, value=10)
+            stock_data[ticker] = {'weight': weight, 'years': years}
+
+        # Ensure weights sum to 1
+        total_weight = sum([stock_data[ticker]['weight'] for ticker in stock_data])
+        if total_weight != 1.0:
+            st.error("The sum of weights must be equal to 1.0.")
+        else:
+            if st.button("Analyze"):
+                try:
+                    # Fetch and process data for each stock
+                    portfolio_data = pd.DataFrame()
+                    for ticker, details in stock_data.items():
+                        predictor = StockPredictor(ticker, details['years'])
+                        with st.spinner(f'Fetching data for {ticker}...'):
+                            predictor.fetch_data()
+                        portfolio_data[ticker] = predictor.data['Close'].pct_change().dropna()
+                    
+                    # Add weights to the portfolio data
+                    portfolio_data['Weights'] = [stock_data[ticker]['weight'] for ticker in stock_data]
+
+                    # Calculate portfolio metrics
+                    portfolio_metrics = calculate_portfolio_metrics(portfolio_data)
+
+                    # Display portfolio metrics in a styled table
+                    st.markdown("#### Portfolio Metrics")
+                    st.markdown("""
+                    <div class="prediction-table">
+                    """, unsafe_allow_html=True)
+                    st.dataframe(
+                        pd.DataFrame(portfolio_metrics, index=[0]).style.format({
+                            'Portfolio Return': '{:.2f}%',
+                            'Portfolio Standard Deviation': '{:.2f}%',
+                            'Sharpe\'s Ratio': '{:.2f}',
+                            'Treynor\'s Ratio': '{:.2f}',
+                            'Sortino\'s Ratio': '{:.2f}',
+                            'Information Ratio': '{:.2f}',
+                            'Jensen\'s Alpha': '{:.2f}'
+                        }).set_properties(**{
+                            #'background-color': 'lightyellow',
+                            #'color': 'black'
+                        }).highlight_max(
+                            subset=['Portfolio Return', 'Sharpe\'s Ratio', 'Treynor\'s Ratio', 'Sortino\'s Ratio', 'Information Ratio', 'Jensen\'s Alpha'], color='#2b6929'
+                        ).highlight_min(
+                            subset=['Portfolio Standard Deviation'], color='#FF5733'
+                        ),
+                        use_container_width=True
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+
+# Main execution block
+if __name__ == "__main__":
+    main()
