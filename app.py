@@ -10,7 +10,6 @@ from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.arima.model import ARIMA
 
 # Custom CSS to enhance the app's appearance
-# Set page config
 st.set_page_config(
     page_title="Stock Analysis & Prediction",
     page_icon="📈",
@@ -285,7 +284,7 @@ class StockPredictor:
                 'scaler': scaler
             }
 
-            return predictions
+            return self.models['RNN']['metrics']
 
         except ImportError:
             st.warning("TensorFlow/Keras not available. Skipping RNN model.")
@@ -697,7 +696,7 @@ def main():
                 # Prediction section
                 st.markdown("### Price Predictions")
                 
-                prediction_models = ['Term Adjusted Exponential Smoothening', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
+                prediction_models = ['Term Adjusted Exponential Smoothing', 'Long Short-Term Memory', 'Recurrent Neural Networks', 'Auto-Regressive Integrated Moving Averages']
                 selected_model = st.selectbox("Select Prediction Model", prediction_models)
                 days = st.number_input("Number of days", min_value=1, value=5, max_value=10)
                 
@@ -707,14 +706,13 @@ def main():
                         all_predictions = pd.DataFrame(columns=['Date', 'Predicted Price'])
                         
                         try:
-                            if selected_model == 'Term Adjusted Exponential Smoothening':
+                            if selected_model == 'Term Adjusted Exponential Smoothing':
                                 predictor.train_taes_model()
                                 predictions = predictor.predict_future(days=days, model='TAES')
                                 model_pred_df = pd.DataFrame({
                                     'Date': predictions.index.strftime('%Y-%m-%d'),
                                     'Predicted Price': predictions.values
                                     })
-                                #model_pred_df['Model'] = selected_model
                                 all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                     
                             elif selected_model == 'Long Short-Term Memory':
@@ -733,20 +731,15 @@ def main():
                                     'Date': predictions.index.strftime('%Y-%m-%d'),
                                     'Predicted Price': predictions.values
                                 })
-                                #model_pred_df['Model'] = selected_model
                                 all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                                 
                             elif selected_model == 'Auto-Regressive Integrated Moving Averages':  
                                 predictor.train_arima_model()
-                                
                                 predictions = predictor.predict_future(days=days, model='ARIMA')
-                                
                                 model_pred_df = pd.DataFrame({
                                     'Date': predictions.index.strftime('%Y-%m-%d'),
                                     'Predicted Price': predictions.values
                                 })
-                                #model_pred_df['Model'] = selected_model
-                                
                                 all_predictions = pd.concat([all_predictions, model_pred_df], ignore_index=True)
                         
                         except Exception as e:
@@ -919,6 +912,5 @@ def main():
             except Exception as e:
                 st.error(f"Error: {str(e)}")
 
-# Main execution block
 if __name__ == "__main__":
     main()
