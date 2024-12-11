@@ -878,6 +878,12 @@ def main():
                 st.session_state[shares_key] = new_shares
                 st.session_state[years_key] = new_years
 
+                # Debugging: Print current session state
+                st.write(f"Session State for Stock {idx + 1}:")
+                st.write(f"Ticker: {st.session_state[ticker_key]}")
+                st.write(f"Shares: {st.session_state[shares_key]}")
+                st.write(f"Years: {st.session_state[years_key]}")
+
         # Button to add more stocks
         if st.button("+ Add Stock"):
             add_stock()
