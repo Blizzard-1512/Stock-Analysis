@@ -888,9 +888,21 @@ def main():
                     # Combine all stock data into a single DataFrame
                     df = pd.DataFrame(portfolio_data)
 
+                    # Drop rows with any NaN values
+                    df.dropna(inplace=True)
+
                     # Add S&P 500 as benchmark
                     sp500 = yf.Ticker('^GSPC').history(start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))['Close']
+                    sp500 = sp500.reindex(df.index)  # Align with the portfolio data
                     df['SPY'] = sp500
+
+                    # Drop rows with NaN values after adding SPY
+                    df.dropna(inplace=True)
+
+                    # Check if there is enough data left after dropping NaN values
+                    if len(df) < 252:
+                        st.error("Insufficient data after dropping NaN values. Please check the stock tickers and weights.")
+                        return
 
                     # Calculate portfolio metrics
                     portfolio_metrics = calculate_portfolio_metrics(df, np.array(list(portfolio.values())), risk_free_rate=0.01)
