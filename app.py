@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from scipy import stats
 from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
+from statsmodels.tsa.arima.model import ARIMA
 
 # Custom CSS to enhance the app's appearance
 # Set page config
@@ -297,8 +297,6 @@ class StockPredictor:
         Train ARIMA model (placeholder implementation)
         """
         try:
-            from statsmodels.tsa.arima.model import ARIMA
-            
             # Prepare data (using closing prices)
             prices = self.data['Close'].dropna().values
             if len(prices) == 0:
@@ -339,7 +337,6 @@ class StockPredictor:
         except ImportError:
             st.warning("Statsmodels not available. Skipping ARIMA model.")
             return None
-
 
     def calculate_var(self, confidence_level: float = 0.99, holding_period: int = 1, n_shares: int = 100) -> dict:
         if self.data is None:
@@ -863,12 +860,12 @@ def main():
         for i in range(num_stocks):
             col1, col2 = st.columns([2, 1])
             with col1:
-                ticker = st.text_input(f"Stock Ticker {i+1}", "").strip().upper()
+                ticker = st.text_input(f"Stock Ticker {i+1}", "", key=f"ticker_{i}")
             with col2:
-                weight = st.number_input(f"Weight for {ticker}", min_value=0.0, max_value=1.0, value=1.0/num_stocks, step=0.01)
+                weight = st.number_input(f"Weight for {ticker}", min_value=0.0, max_value=1.0, value=1.0/num_stocks, step=0.01, key=f"weight_{i}")
             portfolio[ticker] = weight
 
-        # Ensure weights sum to 1
+        # Ensure weights sum to 1.0
         total_weight = sum(portfolio.values())
         if total_weight != 1.0:
             st.warning("Weights must sum to 1.0. Current total weight: {:.2f}".format(total_weight))
