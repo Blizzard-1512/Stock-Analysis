@@ -870,8 +870,8 @@ def main():
 
                 # Update session state with new values
                 new_ticker = st.text_input(f"Enter Stock Ticker Symbol (e.g., AAPL)", value=current_ticker, key=ticker_key).strip().upper()
-                new_shares = st.number_input(f"Enter Number of Shares for Stock", min_value=1, value=current_shares, key=shares_key)
-                new_years = st.number_input(f"Years of Historical Data for Stock", min_value=1, max_value=20, value=current_years, key=years_key)
+                new_shares = st.number_input(f"Enter Number of Shares for Stock {idx + 1}", min_value=1, value=current_shares, key=shares_key)
+                new_years = st.number_input(f"Years of Historical Data for Stock {idx + 1}", min_value=1, max_value=20, value=current_years, key=years_key)
 
                 # Update session state
                 st.session_state[ticker_key] = new_ticker
