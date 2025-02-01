@@ -8,4 +8,7 @@ yfinance==0.2.50
 self
 statsmodels
 tensorflow
+plotly 
+pypfopt 
+transformers
 
