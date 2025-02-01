@@ -8,3 +8,4 @@ plotly
 tensorflow
 statsmodels
 transformers
+self
