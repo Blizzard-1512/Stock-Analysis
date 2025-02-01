@@ -729,25 +729,24 @@ def main():
             except Exception as e:
                 st.error(f"Error: {str(e)}")
                 
-    else:  # Portfolio Analysis
+    else:  
         portfolio_analysis()
-
-    # AI Features Sidebar
-    st.sidebar.markdown("## AI-Powered Tools")
-    if st.sidebar.button("📰 Market Sentiment Analysis"):
-        with st.spinner("Analyzing market sentiment..."):
-            try:
-                sentiment_pipeline = pipeline("sentiment-analysis")
-                sample_news = [
-                    "Tech sector shows strong growth potential",
-                    "Federal Reserve signals possible rate hikes",
-                    "Global markets face uncertainty due to geopolitical tensions"
-                ]
-                results = [{"News": text, 
-                          "Sentiment": sentiment_pipeline(text)[0]['label'], 
-                          "Confidence": f"{sentiment_pipeline(text)[0]['score']:.2%}"} 
-                         for text in sample_news]
-                st.sidebar.dataframe(pd.DataFrame(results), use_container_width=True)
+        
+st.sidebar.markdown("## AI-Powered Tools")
+if st.sidebar.button("📰 Market Sentiment Analysis"):
+    with st.spinner("Analyzing market sentiment..."):
+        try:
+            sentiment_pipeline = pipeline("sentiment-analysis")
+            sample_news = [
+                "Tech sector shows strong growth potential",
+                "Federal Reserve signals possible rate hikes",
+                "Global markets face uncertainty due to geopolitical tensions"
+            ]
+            results = [{"News": text, 
+                        "Sentiment": sentiment_pipeline(text)[0]['label'], 
+                        "Confidence": f"{sentiment_pipeline(text)[0]['score']:.2%}"} 
+                       for text in sample_news]
+            st.sidebar.dataframe(pd.DataFrame(results), use_container_width=True)
             except:
                 st.sidebar.error("Sentiment analysis unavailable")
 
