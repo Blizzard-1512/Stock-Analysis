@@ -747,7 +747,7 @@ if st.sidebar.button("📰 Market Sentiment Analysis"):
                         "Confidence": f"{sentiment_pipeline(text)[0]['score']:.2%}"} 
                        for text in sample_news]
             st.sidebar.dataframe(pd.DataFrame(results), use_container_width=True)
-            except:
+        except:
                 st.sidebar.error("Sentiment analysis unavailable")
 
 if __name__ == "__main__":
