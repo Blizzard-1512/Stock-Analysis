@@ -807,7 +807,7 @@ def main():
                 st.error(f"Error: {str(e)}")
                 
     else:  
-        portfolio_analysis()
+        PortfolioManager()
         
 st.sidebar.markdown("## AI-Powered Tools")
 if st.sidebar.button("📰 Market Sentiment Analysis"):
