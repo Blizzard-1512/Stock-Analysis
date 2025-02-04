@@ -63,6 +63,83 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+class PortfolioManager:
+    def __init__(self):
+        """Initialize portfolio in session state if not exists"""
+        if 'portfolio' not in st.session_state:
+            st.session_state.portfolio = []
+            
+    def add_stock(self, symbol: str, units: int) -> None:
+        """
+        Add a stock to the portfolio
+        Args:
+            symbol (str): Stock ticker symbol
+            units (int): Number of shares/units
+        """
+        symbol = symbol.upper().strip()
+        if symbol and not any(s['symbol'] == symbol for s in st.session_state.portfolio):
+            st.session_state.portfolio.append({
+                'symbol': symbol,
+                'units': int(units)
+            })
+            
+    def remove_stock(self, symbol: str) -> None:
+        """Remove a stock from the portfolio"""
+        st.session_state.portfolio = [
+            s for s in st.session_state.portfolio 
+            if s['symbol'] != symbol.upper()
+        ]
+        
+    def get_portfolio_data(self) -> pd.DataFrame:
+        """
+        Retrieve current portfolio data with pricing information
+        Returns:
+            pd.DataFrame: Portfolio data with current values
+        """
+        portfolio_data = []
+        
+        for item in st.session_state.portfolio:
+            try:
+                # Get current price from Yahoo Finance
+                stock = yf.Ticker(item['symbol'])
+                hist = stock.history(period="1d")
+                
+                if not hist.empty:
+                    current_price = hist['Close'].iloc[-1]
+                    current_value = current_price * item['units']
+                    
+                    portfolio_data.append({
+                        'Symbol': item['symbol'],
+                        'Units': item['units'],
+                        'Price': current_price,
+                        'Value': current_value,
+                        'Last Updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    })
+                else:
+                    st.error(f"No data available for {item['symbol']}")
+                    
+            except Exception as e:
+                st.error(f"Error fetching data for {item['symbol']}: {str(e)}")
+        
+        return pd.DataFrame(portfolio_data)
+    
+    def get_total_value(self) -> float:
+        """Calculate total portfolio value"""
+        df = self.get_portfolio_data()
+        return df['Value'].sum() if not df.empty else 0.0
+    
+    def clear_portfolio(self) -> None:
+        """Reset portfolio to empty state"""
+        st.session_state.portfolio = []
+    
+    def portfolio_exists(self) -> bool:
+        """Check if portfolio contains any holdings"""
+        return len(st.session_state.portfolio) > 0
+    
+    def get_stock_symbols(self) -> list:
+        """Get list of symbols in portfolio"""
+        return [item['symbol'] for item in st.session_state.portfolio]
+
 class StockPredictor:
     def __init__(self, ticker: str, years: int = 10):
         self.ticker = ticker.upper()
